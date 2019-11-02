@@ -130,7 +130,7 @@ setup(
         'tqdm>=4.14.0',
         'python-snappy>=0.5.3',
         'PyYAML>=4.2b1',
-        'Pillow==5.4.1',
+        'Pillow==6.2.0',
         'future==0.17.1',
     ],
 
