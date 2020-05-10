@@ -1,0 +1,7 @@
+//
+// Prefix header for all source files of the 'Command Line Utilities' target in the 'Command Line Utilities' project
+//
+
+#ifdef __OBJC__
+	#import <Cocoa/Cocoa.h>
+#endif

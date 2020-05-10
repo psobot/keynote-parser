@@ -114,7 +114,8 @@ A copy of O'Brien's format documentation is included in the `docs` folder for po
 
 ## License
 
-All code in this repository is licensed under the MIT License.
+All code in this repository is licensed under the MIT License, save for the contents of the
+`dumper/unsign` directory, which is licensed under the ISC license.
 
 ```
 Copyright 2019-2020 Peter Sobot
