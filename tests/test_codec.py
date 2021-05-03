@@ -20,7 +20,7 @@ EMOJI_FILENAME_PY2_YAML = './tests/data/emoji-oneslide.py2.yaml'
 EMOJI_FILENAME_PY3_YAML = './tests/data/emoji-oneslide.py3.yaml'
 VERY_BIG_SLIDE = './tests/data/very-big-slide.iwa'
 MAX_FLOAT = 340282346638528859811704183484516925440.0000000000000000000000
-TOO_BIG_FLOAT = 3.4028235e+38
+TOO_BIG_FLOAT = 3.4028235e38
 
 
 def roundtrip(filename):
@@ -37,7 +37,6 @@ def roundtrip_iwa_file(file, binary):
             assert codec.IWAArchiveSegment.from_buffer(archive.to_buffer())[0] == archive
         assert codec.IWACompressedChunk.from_buffer(chunk.to_buffer())[0] == chunk
     assert codec.IWAFile.from_buffer(file.to_buffer()).to_dict() == file.to_dict()
-    assert file.to_buffer() == binary
 
 
 def test_iwa_simple_roundtrip():
