@@ -34,7 +34,7 @@ jobs:
         pip install flake8 pytest
         pip install -r requirements.txt
       env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: true
+        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     - name: Build package
       run: make
     - name: Lint with flake8
