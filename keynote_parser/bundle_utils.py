@@ -1,4 +1,5 @@
 import os
+import sys
 import warnings
 import plistlib
 import urllib
@@ -38,7 +39,8 @@ class KeynoteVersionWarning(UserWarning):
         new_issue_url = __new_issue_url__ + "?" + urllib.parse.urlencode({"title": issue_title})
         super(UserWarning, self).__init__(
             (
-                "KeynoteVersionWarning: " + Fore.RESET
+                "KeynoteVersionWarning: "
+                + Fore.RESET
                 + "This version of keynote_parser (%s) was not built with support "
                 "for\nthe currently installed version of Keynote.\n"
                 "\tkeynote_parser version:    %s\n"
@@ -73,7 +75,7 @@ class KeynoteVersionWarning(UserWarning):
 
 
 class CleanWarning(object):
-    def custom_format_warning(self, message, *args):
+    def custom_format_warning(self, message, *args, **kwargs):
         # Nasty hack - by putting the initial colour in the formatter,
         # the Warnings filter still lets users ignore this warning as
         # the message itself doesn't start with an ANSI escape sequence.
@@ -90,22 +92,26 @@ class CleanWarning(object):
 DID_WARN = False
 
 
-def warn_once_on_newer_keynote():
+def warn_once_on_newer_keynote(installed_keynote_version=None):
     global DID_WARN
     if DID_WARN:
         return False
 
-    installed_keynote_version = get_installed_keynote_version()
+    installed_keynote_version = installed_keynote_version or get_installed_keynote_version()
     if not installed_keynote_version:
         return False
 
     if __supported_keynote_version__ < installed_keynote_version:
-        with CleanWarning():
+        try:
+            with CleanWarning():
+                warnings.warn(KeynoteVersionWarning(installed_keynote_version))
+        except Exception:
+            # In case CleanWarning throws an error
             warnings.warn(KeynoteVersionWarning(installed_keynote_version))
         DID_WARN = True
 
     return DID_WARN
 
 
-if not __command_line_invocation__:
+if not __command_line_invocation__ and "pytest" not in sys.modules:
     warn_once_on_newer_keynote()
