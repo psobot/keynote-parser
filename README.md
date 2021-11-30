@@ -93,7 +93,6 @@ As new versions of Keynote are released, the following steps must be undertaken:
     to attach, [temporarily disable System IntegrityProtection](https://apple.stackexchange.com/questions/208478/how-do-i-disable-system-integrity-protection-sip-aka-rootless-on-macos-os-x)
     to get this data.
 
-
 ## Troubleshooting
 
 ### Unable to complete installation due to snappy-c.h not found.
@@ -103,7 +102,6 @@ snappy/snappymodule.cc:31:10: fatal error: 'snappy-c.h' file not found
 ```
 
 This means you're missing the Snappy libraries. Install Snappy via whatever method your OS supports. e.g. `brew install snappy`, `sudo apt-get install libsnappy-dev`, etc.
-
 
 ## Credits
 
