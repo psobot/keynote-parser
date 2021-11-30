@@ -104,22 +104,6 @@ snappy/snappymodule.cc:31:10: fatal error: 'snappy-c.h' file not found
 
 This means you're missing the Snappy libraries. Install Snappy via whatever method your OS supports. e.g. `brew install snappy`, `sudo apt-get install libsnappy-dev`, etc.
 
-### Missing PIL module.
-
-```bash
-ImportError: No module named PIL
-```
-
-Run `pip install image` to install the missing dependency.
-
-### Missing builtins module.
-
-```bash
-ImportError: No module named builtins
-```
-
-Run `pip install future` to install the missing dependency.
-
 
 ## Credits
 
