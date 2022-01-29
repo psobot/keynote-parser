@@ -96,6 +96,16 @@ As new versions of Keynote are released, the following steps must be undertaken:
   * The `parse_proto_mapping.py` script in `protos` may help turn the output from this step into a
     JSON mapping, usable in `mapping.py`.
 
+## Troubleshooting
+
+### Unable to complete installation due to snappy-c.h not found.
+
+```bash
+snappy/snappymodule.cc:31:10: fatal error: 'snappy-c.h' file not found
+```
+
+This means you're missing the Snappy libraries. Install Snappy via whatever method your OS supports. e.g. `brew install snappy`, `sudo apt-get install libsnappy-dev`, etc.
+
 ## Credits
 
 `keynote-parser` was built by [Peter Sobot](https://petersobot.com) but heavily based on [prior
