@@ -19,6 +19,10 @@ debugger.SetAsync(False)
 target = debugger.CreateTargetWithFileAndArch(exe, None)
 target.BreakpointCreateByName("_sendFinishLaunchingNotification")
 target.BreakpointCreateByName("_handleAEOpenEvent:")
+# To get around the fact that we don't have iCloud entitlements when running re-signed code,
+# let's break in the CloudKit code and early exit the function before it can raise an exception:
+target.BreakpointCreateByName("[CKContainer containerWithIdentifier:]")
+
 process = target.LaunchSimple(None, None, os.getcwd())
 
 if not process:
@@ -26,6 +30,12 @@ if not process:
 try:
     if process.GetState() == lldb.eStateStopped:
         thread = process.GetThreadAtIndex(0)
+        if thread.GetStopReason() == lldb.eStopReasonBreakpoint:
+            if thread.GetSelectedFrame().name == '+[CKContainer containerWithIdentifier:]':
+                # Skip the code in CKContainer, avoiding a crash due to missing entitlements:
+                thread.ReturnFromFrame(thread.GetSelectedFrame(), lldb.SBValue().CreateValueFromExpression("0", ""))
+                process.Continue()
+    if process.GetState() == lldb.eStateStopped:
         if thread:
             frame = thread.GetFrameAtIndex(0)
             if frame:
@@ -47,5 +57,7 @@ try:
                 )
             else:
                 raise ValueError("Could not get frame to print out registry!")
+    else:
+        raise ValueError("LLDB was unable to stop process! " + str(process))
 finally:
     process.Kill()
