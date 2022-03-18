@@ -7,7 +7,7 @@ import keynote_parser.macos_app_version
 __major_version__ = 1
 __patch_version__ = 1
 __supported_keynote_version__ = keynote_parser.macos_app_version.MacOSAppVersion(
-    "10.2", "7028.0.88", "1A122"
+    "11.2", "7032.0.145", "12E262"
 )
 __version_tuple__ = (
     __major_version__,

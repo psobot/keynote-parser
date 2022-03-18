@@ -196,7 +196,7 @@ message PlaceholderArchive {
     kKindObjectPlaceholder = 4;
   }
   required .TSWP.ShapeInfoArchive super = 1;
-  optional .KN.PlaceholderArchive.Kind kind = 2;
+  optional .KN.PlaceholderArchive.Kind kind = 2 [default = kKindPlaceholder];
 }
 
 message NoteArchive {
@@ -211,7 +211,7 @@ message ClassicStylesheetRecordArchive {
 message ClassicThemeRecordArchive {
   optional string uuid = 1;
   optional .TSP.Reference stylesheetRecord = 2;
-  repeated .TSP.Reference masters = 3;
+  repeated .TSP.Reference templates = 3;
 }
 
 message SlideArchive {
@@ -257,8 +257,8 @@ message SlideArchive {
   repeated .TSP.Reference bodyListStyles = 35;
   optional string thumbnailTextForTitlePlaceholder = 37;
   optional string thumbnailTextForBodyPlaceholder = 38;
-  optional bool slideObjectsLayerWithMaster = 41;
-  optional .TSP.Reference master = 17;
+  optional bool slide_objects_layer_with_template = 41 [default = false];
+  optional .TSP.Reference template_slide = 17;
   repeated .TSD.GuideArchive staticGuides = 18;
   optional .TSP.Reference userDefinedGuideStorage = 36;
   required bool inDocument = 19;
@@ -288,7 +288,7 @@ message SlideNodeArchive {
   required bool hasBuilds = 6 [deprecated = true];
   required bool hasTransition = 7;
   optional bool hasNote = 8;
-  optional bool isSlideNumberVisible = 18;
+  optional bool isSlideNumberVisible = 18 [default = false];
   optional string uniqueIdentifier = 11 [deprecated = true];
   optional string copyFromSlideIdentifier = 12;
   optional uint32 slideSpecificHyperlinkCount = 13 [deprecated = true];
@@ -300,6 +300,8 @@ message SlideNodeArchive {
   optional bool has_explicit_builds_is_up_to_date = 23 [deprecated = true];
   repeated .KN.SlideNodeArchive.SlideSpecificHyperlinkMapEntry slideSpecificHyperlinkMap = 24;
   optional bool has_background_alpha = 28;
+  optional .TSP.UUID template_slide_id = 29;
+  repeated .TSP.UUID live_video_source_ids = 30;
   optional .TSP.Reference database_thumbnail = 3 [deprecated = true];
   repeated .TSP.Reference database_thumbnails = 9 [deprecated = true];
 }
@@ -319,15 +321,15 @@ message DesktopUILayoutArchive {
   optional bool notes_visible = 3;
   optional bool light_table_visible = 5;
   optional bool inspector_pane_visible = 6 [default = true];
-  optional .KN.DesktopUILayoutArchive.InspectorPaneViewMode inspector_pane_view_mode = 7;
-  optional bool showing_master_slides = 8;
+  optional .KN.DesktopUILayoutArchive.InspectorPaneViewMode inspector_pane_view_mode = 7 [default = kInspectorPaneViewModeFormat];
+  optional bool showing_template_slides = 8;
   optional bool inspector_pane_autohidden = 9;
   optional bool element_list_visible = 10;
 }
 
 message UIStateArchive {
   optional .TSP.Reference slideNodeToEdit = 1 [deprecated = true];
-  optional .TSP.Reference deprecated_masterSlideNodeToApply = 2;
+  optional .TSP.Reference deprecated_template_slide_node_to_apply = 2;
   optional .TSP.Size deprecated_slideThumbnailSize = 3;
   optional float canvasViewScale = 4;
   optional .TSP.Point canvasOffset = 5;
@@ -343,7 +345,7 @@ message UIStateArchive {
   optional float light_table_zoom_scale = 14;
   repeated .TSCH.ChartUIState chart_ui_state = 15;
   optional bool show_slide_guides = 16;
-  optional bool show_master_guides = 17;
+  optional bool show_template_guides = 17;
   optional bool shows_comments = 18;
   optional bool comments_printing_toggle_enabled = 39;
   repeated .TSP.Reference collapsed_slide_nodes = 19;
@@ -390,6 +392,7 @@ message IOSSavedPlaybackStateArchive {
   optional double elapsed_time_start_time = 7;
   optional double recording_playback_current_time = 8;
   optional bool should_show_slide_navigator = 9;
+  optional bool is_multi_presenter_show = 10;
 }
 
 message CanvasSelectionArchive {
@@ -411,13 +414,14 @@ message ThemeCustomTimingCurveArchive {
 
 message ThemeArchive {
   required .TSS.ThemeArchive super = 1;
-  repeated .TSP.Reference masters = 2;
+  repeated .TSP.Reference templates = 2;
   optional string uuid = 3;
   repeated .TSP.Reference classicThemeRecords = 4;
-  optional .TSP.Reference defaultMasterSlideNode = 5;
-  optional .TSP.Reference default_master_slide_node_reference = 6;
-  optional bool default_master_slide_node_is_our_best_guess = 7;
+  optional .TSP.Reference default_template_slide_node = 5;
+  optional .TSP.Reference default_template_slide_node_reference = 6;
+  optional bool default_template_slide_node_is_our_best_guess = 7;
   repeated .KN.ThemeCustomTimingCurveArchive custom_effect_timing_curves = 8;
+  optional .TSP.Reference live_video_source_collection = 9;
 }
 
 message SlideTreeArchive {
@@ -439,11 +443,11 @@ message ShowArchive {
   optional bool slideNumbersVisible = 6;
   optional .TSP.Reference recording = 7;
   optional bool loop_presentation = 8;
-  optional .KN.ShowArchive.KNShowMode mode = 9;
-  optional double autoplay_transition_delay = 10 [default = 5.0];
-  optional double autoplay_build_delay = 11 [default = 2.0];
+  optional .KN.ShowArchive.KNShowMode mode = 9 [default = kKNShowModeNormal];
+  optional double autoplay_transition_delay = 10 [default = 5];
+  optional double autoplay_build_delay = 11 [default = 2];
   optional bool idle_timer_active = 15;
-  optional double idle_timer_delay = 16 [default = 900.0];
+  optional double idle_timer_delay = 16 [default = 900];
   optional .TSP.Reference soundtrack = 17;
   optional bool automatically_plays_upon_open = 18;
   optional .TSP.Reference slideList = 19;
@@ -467,17 +471,21 @@ message SlideStylePropertiesArchive {
 
 message SlideStyleArchive {
   required .TSS.StyleArchive super = 1;
-  optional uint32 override_count = 10;
+  optional uint32 override_count = 10 [default = 0];
   optional .KN.SlideStylePropertiesArchive slide_properties = 11;
 }
 
 message PasteboardNativeStorageArchive {
+  message LiveVideoSourcePair {
+    optional .TSP.Reference live_video_info = 1;
+    optional .TSP.Reference live_video_source = 2;
+  }
   repeated .TSP.Reference drawables = 1;
   repeated .TSP.Reference builds = 2;
   repeated .TSP.Reference buildChunks = 3;
   repeated .TSP.Reference slideNodes = 4;
   repeated .TSP.Reference displayed_slide_nodes = 12;
-  repeated .TSP.Reference masterSlideNodes = 9;
+  repeated .TSP.Reference template_slide_nodes = 9;
   repeated .TSP.Reference collapsedSlideNodes = 10;
   repeated .TSP.Reference outlineCollapsedSlideNodes = 11;
   repeated .TSP.Reference outlineHasBodySlideNodes = 13;
@@ -489,11 +497,12 @@ message PasteboardNativeStorageArchive {
   repeated string original_slide_node_UUIDs = 15;
   optional bool slide_nodes_have_datas_needing_download = 16;
   optional .KN.TransitionArchive transition = 17;
+  repeated .KN.PasteboardNativeStorageArchive.LiveVideoSourcePair live_video_sources = 18;
 }
 
-message PrototypeForUndoMasterChangeArchive {
+message PrototypeForUndoTemplateChangeArchive {
   optional .TSP.Reference slide_style = 1;
-  required .TSP.UUID master_slide_id = 2;
+  required .TSP.UUID template_slide_id = 2;
   repeated .TSP.UUID drawable_info_id_list = 3;
   repeated .TSP.Reference placeholders = 4;
   repeated string placeholder_tags_list = 5;
@@ -507,7 +516,7 @@ message RecordingArchive {
   repeated .TSP.Reference event_tracks = 1;
   optional .TSP.Reference movie_track = 2;
   optional double duration = 3;
-  optional .KN.RecordingArchive.RecordingSyncStateEnum sync_state_enum = 4 [deprecated = true];
+  optional .KN.RecordingArchive.RecordingSyncStateEnum sync_state_enum = 4 [default = kRecordingSyncStateInSyncWithShow, deprecated = true];
   optional .TSP.Date modification_date = 5;
   optional .KN.RecordingSyncState sync_state = 6;
   optional .KN.RecordingCorrectionHistory correction_history = 7;
@@ -515,7 +524,7 @@ message RecordingArchive {
 
 message RecordingSyncState {
   optional .TSP.UUID out_of_sync_token = 1;
-  optional bool can_clear_out_of_sync_token = 2;
+  optional bool can_clear_out_of_sync_token = 2 [default = false];
 }
 
 message RecordingCorrectionHistory {
@@ -528,7 +537,7 @@ message RecordingEventTrackArchive {
 }
 
 message RecordingEventArchive {
-  optional double start_time = 1 [default = -1.0];
+  optional double start_time = 1 [default = -1];
   optional .KN.RecordingNavigationEventArchive navigation_event_archive = 1000;
   optional .KN.RecordingLaserEventArchive laser_event_archive = 1001;
   optional .KN.RecordingPauseEventArchive pause_event_archive = 1002;
@@ -544,7 +553,7 @@ message RecordingNavigationEventArchive {
   optional .TSP.UUID target_slide_node_id = 4;
   optional .TSP.Reference target_slide_node_reference = 1;
   optional uint32 target_event_index = 2;
-  optional .KN.RecordingNavigationEventArchive.RecordingNavigationEventAnimationPhase animation_phase = 3;
+  optional .KN.RecordingNavigationEventArchive.RecordingNavigationEventAnimationPhase animation_phase = 3 [default = kRecordingNavigationEventAnimationNone];
 }
 
 message RecordingLaserEventArchive {
@@ -559,7 +568,7 @@ message RecordingPauseEventArchive {
     kRecordingPauseEventTypeConcealWithBlack = 2;
     kRecordingPauseEventTypeConcealWithWhite = 3;
   }
-  optional .KN.RecordingPauseEventArchive.RecordingPauseEventType pause_event_type = 1;
+  optional .KN.RecordingPauseEventArchive.RecordingPauseEventType pause_event_type = 1 [default = kRecordingPauseEventTypeResume];
 }
 
 message RecordingMovieEventArchive {
@@ -586,7 +595,7 @@ message RecordingMovieTrackArchive {
 
 message MovieSegmentArchive {
   optional .TSP.DataReference movie_data = 3;
-  optional double start_time = 2 [default = -1.0];
+  optional double start_time = 2 [default = -1];
   optional .TSP.Reference database_movie_data = 1;
 }
 
@@ -597,7 +606,7 @@ message Soundtrack {
     kKNSoundtrackModeDoNotPlay = 2;
   }
   optional double volume = 1;
-  optional .KN.Soundtrack.SoundtrackMode mode = 2;
+  optional .KN.Soundtrack.SoundtrackMode mode = 2 [default = kKNSoundtrackModePlayOnce];
   repeated .TSP.DataReference movie_media = 3;
 }
 
@@ -634,4 +643,51 @@ message MixedIdOperationArgs {
   repeated .TSK.IdPlacementOperationArgs hide_placeholder_args_list = 5;
 }
 
+message LiveVideoInfo {
+  optional .TSP.UUID source_id = 1;
+  optional bool is_placeholder = 2;
+  optional double scale = 3;
+  optional .TSP.Point normalized_offset = 4;
+  optional int32 mask_kind = 5;
+  optional double mask_corner_radius = 6;
+  extend .TSD.MovieArchive {
+    optional .KN.LiveVideoInfo live_video_info = 100;
+  }
+}
+
+message LiveVideoSource {
+  optional string name = 1;
+  optional .KN.LiveVideoCaptureDeviceDescription capture_device_description = 2;
+  optional .KN.LiveVideoSourceCollaborationCommandUsageState collaboration_command_usage_state = 3;
+  optional .TSP.DataReference poster_image_data = 4;
+  optional string symbol_abbreviation_text = 5;
+  optional int32 symbol_image_identifier = 6;
+  optional int32 symbol_tint_color_identifier = 7;
+  optional bool is_default_source = 8;
+}
+
+message LiveVideoSourceCollaborationCommandUsageState {
+  optional .TSP.UUID single_collaboration_command_usage_token = 1;
+  optional bool has_multiple_collaboration_command_usage_tokens = 2;
+}
+
+message LiveVideoCaptureDeviceDescription {
+  enum Position {
+    Unspecified = 0;
+    Back = 1;
+    Front = 2;
+  }
+  optional string unique_id = 1;
+  optional .KN.LiveVideoCaptureDeviceDescription.Position position = 2;
+  optional string device_type = 3;
+  optional string localized_name = 4;
+  optional bool is_ios_screen_recording_device = 5;
+  optional string model_id = 6;
+  optional .TSP.Size default_video_resolution = 7;
+}
+
+message LiveVideoSourceCollection {
+  repeated .TSP.Reference sources = 1;
+  optional .TSP.Reference default_source = 2;
+}
 

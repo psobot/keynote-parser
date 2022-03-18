@@ -7,17 +7,17 @@ import "TSDArchives.proto";
 import "TSDArchives_sos.proto";
 package TSD;
 
-  enum CommentCommandVariant {
-    BaseComment = 0;
-    AddReply = 1;
-    EditReply = 2;
-    DeleteReply = 3;
-  }
+enum CommentCommandVariant {
+  BaseComment = 0;
+  AddReply = 1;
+  EditReply = 2;
+  DeleteReply = 3;
+}
 
-  enum CaptionOrTitleKind {
-    Caption = 1;
-    Title = 2;
-  }
+enum CaptionOrTitleKind {
+  Caption = 1;
+  Title = 2;
+}
 
 message UndoObjectArchive {
   optional .TSP.Reference stylesheet = 2;
@@ -121,15 +121,6 @@ message DrawableApplyThemeCommandArchive {
   optional .TSP.Reference style = 3;
 }
 
-message ShapePathSourceFlipCommandArchive {
-  required .TSK.CommandArchive super = 1;
-  optional .TSP.Reference info = 2;
-  optional bool newHorizontalFlip = 3;
-  optional bool newVerticalFlip = 4;
-  optional bool oldHorizontalFlip = 5;
-  optional bool oldVerticalFlip = 6;
-}
-
 message AbstractStyleCommandArchive {
   required .TSD.InfoCommandArchive super = 1;
 }
@@ -156,7 +147,7 @@ message MediaApplyPresetCommandArchive {
 
 message ShapeStyleSetValueCommandArchive {
   required .TSD.BaseStyleSetValueCommandArchive super = 1;
-  optional .TSD.BaseShapeStylePropertyChangeSetArchive change = 4;
+  optional .TSDSOS.BaseShapeStylePropertyChangeSetArchive change = 4;
 }
 
 message BaseStyleSetValueCommandArchive {
@@ -192,7 +183,7 @@ message MovieSetValueCommandArchive {
 
 message MediaStyleSetValueCommandArchive {
   required .TSD.BaseStyleSetValueCommandArchive super = 1;
-  optional .TSD.MediaStylePropertyChangeSetArchive change = 4;
+  optional .TSDSOS.MediaStylePropertyChangeSetArchive change = 4;
 }
 
 message ImageMediaCommandArchive {
@@ -411,6 +402,9 @@ message DrawableSelectionTransformerArchive {
   required .TSP.Reference untransformed_drawable_selection = 2;
 }
 
+message InfoHyperlinkSelectionTransformerArchive {
+}
+
 message CanvasSelectionTransformerArchive {
   required .TSD.InfoCollectionSelectionTransformerHelperArchive transformer_helper = 1;
 }
@@ -465,5 +459,4 @@ message SetCaptionOrTitleVisibilityCommandArchive {
   optional bool hidden = 3;
   optional bool was_hidden = 4;
 }
-
 

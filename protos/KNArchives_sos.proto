@@ -2,7 +2,7 @@ syntax = "proto2";
 
 import "KNArchives.proto";
 import "TSDArchives_sos.proto";
-package KN;
+package KNSOS;
 
 message SpecSetTransitionAttributesArchive {
   optional .KN.TransitionAttributesArchive transition_attributes = 1;
@@ -10,14 +10,13 @@ message SpecSetTransitionAttributesArchive {
 }
 
 message SpecTransitionAttributesArchive {
-  optional .KN.SpecSetTransitionAttributesArchive spec_set_transition_attributes = 1;
+  optional .KNSOS.SpecSetTransitionAttributesArchive spec_set_transition_attributes = 1;
 }
 
 message SlideStylePropertyChangeSetArchive {
-  optional .TSD.SpecFillArchive fill = 1;
+  optional .TSDSOS.SpecFillArchive fill = 1;
   optional bool fill_undefined = 2;
-  optional .KN.SpecTransitionAttributesArchive slide_transition = 3;
+  optional .KNSOS.SpecTransitionAttributesArchive slide_transition = 3;
   optional bool slide_transition_undefined = 4;
 }
-
 

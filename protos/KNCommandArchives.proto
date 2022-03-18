@@ -4,6 +4,7 @@ import "TSPMessages.proto";
 import "TSKArchives.proto";
 import "TSSArchives.proto";
 import "TSDArchives.proto";
+import "TSDArchives_sos.proto";
 import "TSDCommandArchives.proto";
 import "TSWPArchives.proto";
 import "TSAArchives.proto";
@@ -11,17 +12,17 @@ import "TSTArchives.proto";
 import "KNArchives.proto";
 package KN;
 
-  enum AnimationReferent {
-    kRelativeToStart = 1;
-    kRelativeToEnd = 2;
-  }
+enum AnimationReferent {
+  kRelativeToStart = 1;
+  kRelativeToEnd = 2;
+}
 
 message UIStateCommandGroupArchive {
   required .TSK.CommandGroupArchive super = 1;
   required .TSP.Reference uiState = 2;
   required string property = 3;
   repeated .TSP.Reference slideNodesToEdit = 4;
-  repeated .TSP.Reference masterSlideNodesToApply = 5;
+  repeated .TSP.Reference template_slide_nodes_to_apply = 5;
   repeated .TSP.Size thumbnailSizes = 6;
   repeated .TSP.Reference selectedSlideNodes = 7;
   repeated .TSP.Reference restoreSelectedSlideNodes = 8;
@@ -57,7 +58,7 @@ message CommandSlideSetPlaceholdersForTagsArchive {
   repeated string old_tags = 5;
 }
 
-message CommandMasterSlideSetPlaceholderForTagArchive {
+message CommandTemplateSlideSetPlaceholderForTagArchive {
   required .KN.CommandSlideSetPlaceholdersForTagsArchive super = 1;
   required .TSP.UUID placeholder_id = 2;
   optional string tag = 3;
@@ -125,8 +126,8 @@ message CommandShowMarkOutOfSyncRecordingArchive {
   required .TSK.CommandArchive super = 1;
   required .TSP.Reference show = 2;
   optional .TSP.Reference old_recording = 3;
-  optional bool old_is_recording_out_of_sync = 4;
-  optional bool new_is_recording_out_of_sync = 5;
+  optional bool old_is_recording_out_of_sync = 4 [default = false];
+  optional bool new_is_recording_out_of_sync = 5 [default = false];
   optional .TSP.Date old_modification_date = 6;
   optional .TSP.Date new_modification_date = 7;
 }
@@ -179,8 +180,8 @@ message CommandShowInsertSlideArchive {
   repeated .TSP.Reference slide_nodes_for_depth_fix_up = 7;
   repeated uint32 depths_of_slide_nodes_for_depth_fix_up = 8;
   repeated uint32 old_depths_of_slide_nodes_for_depth_fix_up = 9;
-  optional .KN.CommandShowInsertSlideArchive.Kind kind = 10;
-  repeated .TSP.Reference master_nodes_being_inserted = 11;
+  optional .KN.CommandShowInsertSlideArchive.Kind kind = 10 [default = kKindInsertSlide];
+  repeated .TSP.Reference template_slide_nodes_being_inserted = 11;
   repeated .TSP.UUID custom_format_keys = 12;
   repeated bool collapsed_state_of_slide_nodes_being_inserted = 13;
   optional .TSP.Reference undo_archive = 15;
@@ -237,36 +238,36 @@ message CommandSetThemeCustomEffectTimingCurveArchive {
   optional .TSD.PathSourceArchive old_path_source = 4;
 }
 
-message CommandMoveMastersArchive {
+message CommandMoveTemplatesArchive {
   required .TSD.ContainerReorderChildrenCommandArchive super = 1;
-  repeated .TSP.Reference master_slides = 3;
+  repeated .TSP.Reference template_slides = 3;
   repeated .TSP.Reference previous_indexes_keys = 4;
   repeated uint32 previous_indexes_values = 5;
-  repeated .TSP.Reference final_master_arrangement = 6;
+  repeated .TSP.Reference final_template_arrangement = 6;
 }
 
-message CommandInsertMasterArchive {
+message CommandInsertTemplateArchive {
   required .TSK.CommandArchive super = 1;
-  repeated .TSP.Reference undo_master_change_commands = 7;
-  required bool set_inserted_slide_as_default_master_slide = 8;
-  optional .TSP.Reference undo_replacement_master_slide_node = 9;
+  repeated .TSP.Reference undo_template_change_commands = 7;
+  required bool set_inserted_slide_as_default_template_slide = 8;
+  optional .TSP.Reference undo_replacement_template_slide_node = 9;
 }
 
-message CommandPrimitiveInsertMasterArchive {
+message CommandPrimitiveInsertTemplateArchive {
   required .TSD.ContainerInsertChildrenCommandArchive super = 1;
   required bool was_inserted_with_drop = 2;
   repeated .TSP.UUID custom_format_keys = 3;
   repeated .TSP.Reference previous_classic_theme_records = 4;
 }
 
-message CommandRemoveMasterArchive {
+message CommandRemoveTemplateArchive {
   required .TSK.CommandArchive super = 1;
-  optional .TSP.Reference replacement_master_slide_node = 5;
-  repeated .TSP.Reference master_change_commands = 6;
-  optional bool default_master_slide_node_was_replaced = 7;
+  optional .TSP.Reference replacement_template_slide_node = 5;
+  repeated .TSP.Reference template_change_commands = 6;
+  optional bool default_template_slide_node_was_replaced = 7;
 }
 
-message CommandPrimitiveRemoveMasterArchive {
+message CommandPrimitiveRemoveTemplateArchive {
   required .TSD.ContainerRemoveChildrenCommandArchive super = 1;
   repeated .TSP.Reference previous_classic_theme_records = 3;
 }
@@ -416,40 +417,40 @@ message CommandShowSetSlideNumberVisibilityArchive {
   required bool is_undo = 6;
 }
 
-message CommandMasterSetThumbnailTextArchive {
+message CommandTemplateSetThumbnailTextArchive {
   required .TSK.CommandArchive super = 1;
-  required .TSP.UUID master_id = 2;
+  required .TSP.UUID template_id = 2;
   required bool is_body = 3;
   optional string new_text = 4;
   optional string old_text = 5;
 }
 
-message CommandMasterSetBodyStylesArchive {
+message CommandTemplateSetBodyStylesArchive {
   required .TSK.CommandArchive super = 1;
-  required .TSP.UUID master_id = 2;
+  required .TSP.UUID template_id = 2;
   repeated .TSP.Reference new_paragraph_styles = 3;
   repeated .TSP.Reference new_list_styles = 4;
   repeated .TSP.Reference old_paragraph_styles = 5;
   repeated .TSP.Reference old_list_styles = 6;
 }
 
-message CommandChangeMasterSlideArchive {
+message CommandChangeTemplateSlideArchive {
   required .TSK.CommandArchive super = 1;
   required .TSP.UUIDPath slide_id_path = 2;
-  required .TSP.Reference master_node = 3;
-  optional .TSP.Reference old_master_node = 4;
+  required .TSP.Reference template_slide_node = 3;
+  optional .TSP.Reference old_template_slide_node = 4;
   required bool is_undo_redo = 5;
   optional .TSP.Reference target_prototype = 6;
 }
 
-message CommandSlidePrimitiveSetMasterArchive {
+message CommandSlidePrimitiveSetTemplateArchive {
   required .TSK.CommandArchive super = 1;
   required .TSP.UUIDPath slide_id_path = 2;
-  required .TSP.UUID master_id = 3;
-  optional .TSP.Reference old_master_node = 4;
+  required .TSP.UUID template_id = 3;
+  optional .TSP.Reference old_template_slide_node = 4;
 }
 
-message CommandSlideResetMasterBackgroundObjectsArchive {
+message CommandSlideResetTemplateBackgroundObjectsArchive {
   required .TSK.CommandArchive super = 1;
   optional .TSP.UUIDPath slide_id_path = 2;
 }
@@ -474,7 +475,7 @@ message CommandSoundtrackSetValue {
   optional .KN.CommandSoundtrackSetValue.PropertyValue new_value = 5;
 }
 
-message CommandSlideUpdateMasterDrawables {
+message CommandSlideUpdateTemplateDrawables {
   required .TSK.CommandArchive super = 1;
   required .TSP.UUID slide_id = 2;
   repeated .TSK.IdPlacementOperationArgs id_placement_operation_args = 3;
@@ -515,7 +516,7 @@ message OutlineCanvasSelectionTransformerArchive {
 message SlideCollectionSelectionTransformerHelperArchive {
   repeated .TSP.UUIDPath slide_nodes = 1;
   optional .TSP.UUIDPath slide_node_to_edit = 2;
-  optional bool slide_collection_is_theme = 3;
+  optional bool slide_collection_is_theme = 3 [default = false];
   optional uint32 previous_primary_selected_index = 4;
 }
 
@@ -525,8 +526,85 @@ message SlideCollectionSelectionTransformerArchive {
 
 message OutlineSelectionTransformerArchive {
   required .KN.SlideCollectionSelectionTransformerHelperArchive transformer_helper = 1;
-  optional bool can_have_range_in_selected_paragraph = 2;
+  optional bool can_have_range_in_selected_paragraph = 2 [default = false];
   repeated .TSK.RangeAddress selection_range_addresses = 3;
 }
 
+message CommandLiveVideoInfoApplyPreset {
+  required .TSD.BaseApplyPresetCommandArchive super = 1;
+}
+
+message CommandLiveVideoInfoSetSource {
+  required .TSK.CommandArchive super = 1;
+  required .TSP.UUIDPath live_video_info_id_path = 2;
+  optional .TSP.UUID source_id = 3;
+  optional .TSP.UUID local_collaboration_command_usage_token = 4;
+  optional .KN.LiveVideoSourceCollaborationCommandUsageState working_source_old_collaboration_command_usage_state = 5;
+  optional .TSP.Reference old_source = 6;
+  optional .TSP.UUID old_source_id = 7;
+}
+
+message CommandLiveVideoInfoSetValue {
+  message PropertyValue {
+    optional double scale = 1;
+    optional .TSP.Point normalized_offset = 2;
+    optional int32 mask_kind = 3;
+    optional double mask_corner_radius = 4;
+    optional bool is_placeholder = 5;
+  }
+  enum Property {
+    Scale = 0;
+    NormalizedOffset = 1;
+    MaskKind = 2;
+    MaskCornerRadius = 3;
+    IsPlaceholder = 4;
+  }
+  required .TSK.CommandArchive super = 1;
+  required .TSP.UUIDPath live_video_info_id_path = 2;
+  required .KN.CommandLiveVideoInfoSetValue.Property property = 3;
+  optional .KN.CommandLiveVideoInfoSetValue.PropertyValue value = 4;
+  optional .KN.CommandLiveVideoInfoSetValue.PropertyValue old_value = 5;
+}
+
+message CommandLiveVideoSourceSetValue {
+  message PropertyValue {
+    optional string name = 1;
+    optional .KN.LiveVideoCaptureDeviceDescription capture_device_description = 2;
+    optional .TSP.DataReference poster_image_data = 3;
+    optional string symbol_abbreviation_text = 4;
+    optional int32 symbol_image_identifier = 5;
+    optional int32 symbol_tint_color_identifier = 6;
+  }
+  enum Property {
+    SourceName = 0;
+    CaptureDeviceDescription = 1;
+    PosterImageData = 2;
+    SymbolAbbreviationText = 3;
+    SymbolImageIdentifier = 4;
+    SymbolTintColorIdentifier = 5;
+  }
+  required .TSK.CommandArchive super = 1;
+  required .TSP.UUID live_video_source_id = 2;
+  required .KN.CommandLiveVideoSourceSetValue.Property property = 3;
+  optional .KN.CommandLiveVideoSourceSetValue.PropertyValue value = 4;
+  optional .KN.CommandLiveVideoSourceSetValue.PropertyValue old_value = 5;
+}
+
+message CommandLiveVideoStyleSetValue {
+  required .TSD.BaseStyleSetValueCommandArchive super = 1;
+  optional .TSDSOS.MediaStylePropertyChangeSetArchive change = 2;
+}
+
+message CommandThemeAddLiveVideoSource {
+  required .TSK.CommandArchive super = 1;
+  optional .TSP.Reference live_video_source = 2;
+  optional bool is_implicit = 3;
+}
+
+message CommandThemeRemoveLiveVideoSource {
+  required .TSK.CommandArchive super = 1;
+  required .TSP.UUID live_video_source_id = 2;
+  optional bool is_implicit = 3;
+  optional .TSP.Reference removed_live_video_source = 4;
+}
 
