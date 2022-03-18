@@ -5,7 +5,7 @@ LLDB_PYTHON_PATH := ${shell lldb --python-path}
 LLDB_PYTHON := ${shell lldb --python-path | cut -f 8 -d /}
 IDENTITY := $(shell security find-identity -v -p codesigning | head -n 1 | python -c 'import sys; print(sys.stdin.read().split("\"")[1])')
 
-all: mapping.json proto
+all: mapping.py proto
 
 mapping.json: Keynote.unsigned.app/Contents/MacOS/Keynote ./extract_mapping.py
 	PYTHONPATH=${LLDB_PYTHON_PATH} xcrun $(LLDB_PYTHON) ./extract_mapping.py Keynote.unsigned.app/Contents/MacOS/Keynote > $@
@@ -25,7 +25,12 @@ Keynote.unsigned.app/Contents/MacOS/Keynote: /Applications/Keynote.app
 	codesign --remove-signature --verbose ./Keynote.unsigned.app/Contents/MacOS/Keynote
 	codesign --sign "${IDENTITY}" --verbose ./Keynote.unsigned.app/Contents/MacOS/Keynote
 
+mapping.py: mapping.json
+	python3 generate_mapping.py
+	cp mapping.py ../keynote_parser/mapping.py
+
 clean:
 	rm -rf Keynote.unsigned.app
 	rm -rf mapping.json
+	rm -rf mapping.py
 	rm -rf proto

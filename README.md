@@ -81,20 +81,19 @@ sizes of the target image.
 
 ## Updates
 
-As `keynote-parser` includes private Protobuf definitions extracted from a copy of Keynote,
+As `keynote-parser` includes Protobuf definitions extracted from a copy of Keynote,
 new versions of Keynote will inevitably create `.key` files that cannot be read by `keynote-parser`.
-As new versions of Keynote are released, the following steps must be undertaken:
+As new versions of Keynote are released, updates to `keynote-parser` can be made automatically
+by running the following on a macOS machine with Keynote installed:
 
-* Run [proto-dump](https://github.com/obriensp/proto-dump) on the new copy of Keynote to dump new Proto files.
-  * Any `.` characters in the Protobuf definitions must be changed to `_` characters manually, or via
-    the `rename_proto_files.py` script in the `protos` directory of this repo.
-* Connect to a running copy of `Keynote` with `lldb` (or any other debugger) and manually copy
-  the results of `[TSPRegistry sharedRegistry]` into `mapping.py`.
-  * Versions of macOS >= 10.11 may protect Keynote from being attached to by a debugger -
-    to attach, [temporarily disable System IntegrityProtection](https://apple.stackexchange.com/questions/208478/how-do-i-disable-system-integrity-protection-sip-aka-rootless-on-macos-os-x)
-    to get this data.
-  * The `parse_proto_mapping.py` script in `protos` may help turn the output from this step into a
-    JSON mapping, usable in `mapping.py`.
+```shell
+# protobuf>=3.20.0rc1 must be installed, with the C++ runtime
+# on Intel, this can be done with "pip install 'protobuf>=3.20.0rc1'"
+# on Apple Silicon, this may require a manual build from source
+cd dumper
+make clean
+make
+```
 
 ## Troubleshooting
 
@@ -114,11 +113,10 @@ A copy of O'Brien's format documentation is included in the `docs` folder for po
 
 ## License
 
-All code in this repository is licensed under the MIT License, save for the contents of the
-`dumper/unsign` directory, which is licensed under the ISC license.
+All code in this repository is licensed under the MIT License.
 
 ```
-Copyright 2019-2020 Peter Sobot
+Copyright 2019-2022 Peter Sobot
 
 Permission is hereby granted, free of charge, to any person obtaining a copy of this software
 and associated documentation files (the "Software"), to deal in the Software without restriction,
