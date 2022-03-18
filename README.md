@@ -79,6 +79,23 @@ To do so:
 `keynote-parser` will automatically rescale the replacement image to fit all of the
 sizes of the target image.
 
+### Compatibility
+
+Note that between Keynote 10.2 and Keynote 11.2, a number of Protobuf definitions
+used by Keynote have changed names. `keynote-parser` does not yet support
+backwards compatibility: it can only read `.key` files as the
+currently-supported Keynote version would, and will write `.yaml` output with
+keys that match the current names of the keys. This means that **`.yaml` files
+generated with older versions of `keynote-parser` may not be readable by with
+v1.11.2.1 or higher of `keynote-parser`**.
+
+Until this issue is fixed (_if_ it's ever fixed) - to properly read `.yaml` files
+created by older versions of `keynote-parser`:
+ - use an older version of `keynote-parser` to read the file
+ - write a `.key` (or `.iwa`) file with that older version
+ - upgrade `keynote-parser`
+ - read that resulting `.iwa` file in the newer version of `keynote-parser`
+
 ## Updates
 
 As `keynote-parser` includes private Protobuf definitions extracted from a copy of Keynote,
