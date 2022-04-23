@@ -9,9 +9,9 @@ from .generated import TSAArchives_sos_pb2 as TSAArchives_sos
 from .generated import TSACommandArchives_sos_pb2 as TSACommandArchives_sos
 from .generated import TSCEArchives_pb2 as TSCEArchives
 from .generated import TSCH3DArchives_pb2 as TSCH3DArchives
+from .generated import TSCHArchives_pb2 as TSCHArchives
 from .generated import TSCHArchives_Common_pb2 as TSCHArchives_Common
 from .generated import TSCHArchives_GEN_pb2 as TSCHArchives_GEN
-from .generated import TSCHArchives_pb2 as TSCHArchives
 from .generated import TSCHArchives_sos_pb2 as TSCHArchives_sos
 from .generated import TSCHCommandArchives_pb2 as TSCHCommandArchives
 from .generated import TSCHPreUFFArchives_pb2 as TSCHPreUFFArchives
@@ -19,6 +19,7 @@ from .generated import TSDArchives_pb2 as TSDArchives
 from .generated import TSDArchives_sos_pb2 as TSDArchives_sos
 from .generated import TSDCommandArchives_pb2 as TSDCommandArchives
 from .generated import TSKArchives_pb2 as TSKArchives
+from .generated import TSKArchives_sos_pb2 as TSKArchives_sos
 from .generated import TSPArchiveMessages_pb2 as TSPArchiveMessages
 from .generated import TSPDatabaseMessages_pb2 as TSPDatabaseMessages
 from .generated import TSPMessages_pb2 as TSPMessages
@@ -53,6 +54,7 @@ PROTO_FILES = [
     TSDArchives_sos,
     TSDCommandArchives,
     TSKArchives,
+    TSKArchives_sos,
     TSPArchiveMessages,
     TSPDatabaseMessages,
     TSPMessages,
@@ -648,6 +650,8 @@ TSPRegistryMapping = {
     "6379": "TST.CommandRewritePivotOwnerFormulasArchive",
     "6380": "TST.CommandRewriteTrackedReferencesArchive",
     "6381": "TST.CommandExtendTableIDHistoryArchive",
+    "6382": "TST.GroupByArchive.AggregatorArchive",
+    "6383": "TST.GroupByArchive.GroupNodeArchive",
     "10011": "TSWP.SectionPlaceholderArchive",
     "10020": "TSWP.ShapeSelectionTransformerArchive",
     "10021": "TSWP.SelectionTransformerArchive",
