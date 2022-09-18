@@ -841,20 +841,29 @@ message FilenameSmartFieldArchive {
   optional uint32 display_flags = 2;
 }
 
+message MergeFieldTypeArchive {
+  optional string contacts_property = 2;
+  optional string contacts_key = 3;
+  optional string contacts_label = 4;
+  optional string table_key = 5;
+}
+
 message MergeSmartFieldArchive {
   enum MergeCategory {
     kMergeCategoryTo = 0;
     kMergeCategoryFrom = 1;
   }
   optional .TSWP.PlaceholderSmartFieldArchive super = 1;
-  optional string property = 2;
-  optional string label = 3;
-  optional string key = 4;
+  optional string contacts_property = 2;
+  optional string contacts_key = 3;
+  optional string contacts_label = 4;
   optional .TSWP.MergeSmartFieldArchive.MergeCategory category = 5;
   optional bool requires_following_whitespace = 6;
   optional string whitespace = 7;
   optional string guid = 8;
-  optional string table_field = 9;
+  optional string table_key = 9;
+  optional .TSWP.MergeFieldTypeArchive field_type = 10;
+  optional bool has_custom_text = 11;
 }
 
 message TOCSmartFieldArchive {

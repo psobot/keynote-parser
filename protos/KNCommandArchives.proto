@@ -10,6 +10,7 @@ import "TSWPArchives.proto";
 import "TSAArchives.proto";
 import "TSTArchives.proto";
 import "KNArchives.proto";
+import "KNArchives_sos.proto";
 package KN;
 
 enum AnimationReferent {
@@ -606,5 +607,21 @@ message CommandThemeRemoveLiveVideoSource {
   required .TSP.UUID live_video_source_id = 2;
   optional bool is_implicit = 3;
   optional .TSP.Reference removed_live_video_source = 4;
+}
+
+message CommandMotionBackgroundStyleSetValueArchive {
+  required .TSK.CommandArchive super = 1;
+  required .TSP.UUIDPath slide_id_path = 4;
+  optional .TSP.Reference old_style = 2;
+  optional .TSP.Reference old_slide_style = 5;
+  optional .KNSOS.MotionBackgroundStylePropertyChangeSetArchive change = 3;
+  optional .KNSOS.MotionBackgroundStylePropertyChangeSetArchive undo_property_change = 6;
+}
+
+message CommandMotionBackgroundStyleUpdatePosterFrameDataArchive {
+  required .TSK.CommandArchive super = 1;
+  optional .TSP.Reference motion_background_style = 2;
+  optional .TSP.DataReference poster_image_data = 3;
+  optional .TSP.DataReference old_poster_image_data = 4;
 }
 

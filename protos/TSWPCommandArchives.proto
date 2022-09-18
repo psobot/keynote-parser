@@ -98,6 +98,9 @@ message StorageActionCommandArchive {
     kKindRemoveRuby = 37;
     kKindTateChuYoko = 38;
     kKindDropCapStyle = 39;
+    kKindMergeField = 40;
+    kKindModifyMergeField = 41;
+    kKindMergeFieldTypeReplace = 42;
   }
   optional .TSK.CommandArchive super = 1;
   optional .TSP.UUIDPath storage = 2;
