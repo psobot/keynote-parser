@@ -2,7 +2,7 @@ import os
 import sys
 import warnings
 import plistlib
-import urllib
+import urllib.parse
 from colorama import init as colorama_init
 from colorama import Fore
 from keynote_parser import (

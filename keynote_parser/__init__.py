@@ -1,4 +1,4 @@
-# Copyright 2020 Peter Sobot
+# Copyright 2020-2022 Peter Sobot
 """Unpack and repack Apple Keyote files."""
 __author__ = "Peter Sobot"
 
@@ -7,7 +7,7 @@ import keynote_parser.macos_app_version
 __major_version__ = 1
 __patch_version__ = 0
 __supported_keynote_version__ = keynote_parser.macos_app_version.MacOSAppVersion(
-    "12.0", "7033.0.134", "1A143"
+    "12.1", "7034.0.86", "1A95"
 )
 __version_tuple__ = (
     __major_version__,

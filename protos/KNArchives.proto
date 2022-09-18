@@ -299,7 +299,7 @@ message SlideNodeArchive {
   optional uint32 has_explicit_builds_cache_version = 27;
   optional bool has_explicit_builds_is_up_to_date = 23 [deprecated = true];
   repeated .KN.SlideNodeArchive.SlideSpecificHyperlinkMapEntry slideSpecificHyperlinkMap = 24;
-  optional bool has_background_alpha = 28;
+  optional bool background_is_no_fill_or_color_fill_with_alpha = 28;
   optional .TSP.UUID template_slide_id = 29;
   repeated .TSP.UUID live_video_source_ids = 30;
   optional .TSP.Reference database_thumbnail = 3 [deprecated = true];
@@ -422,6 +422,7 @@ message ThemeArchive {
   optional bool default_template_slide_node_is_our_best_guess = 7;
   repeated .KN.ThemeCustomTimingCurveArchive custom_effect_timing_curves = 8;
   optional .TSP.Reference live_video_source_collection = 9;
+  repeated .TSP.Reference motion_background_style_presets = 10;
 }
 
 message SlideTreeArchive {
@@ -689,5 +690,130 @@ message LiveVideoCaptureDeviceDescription {
 message LiveVideoSourceCollection {
   repeated .TSP.Reference sources = 1;
   optional .TSP.Reference default_source = 2;
+}
+
+message MotionBackgroundStylePropertiesArchive {
+  optional string background_name = 1;
+  optional string variant = 2;
+  optional .TSD.FillArchive color_gradient = 3;
+  optional int32 random_number_seed = 10;
+  optional double color_blur_sigma = 11;
+  optional double noise_amplitude = 12;
+  optional double noise_octaves = 13;
+  optional double noise_scale = 14;
+  optional double noise_speed = 15;
+  optional double color_palette_offset = 16;
+  optional double zoom = 17;
+  optional bool invert = 18;
+  optional string blend_mode = 19;
+  optional string source_blend_factor = 20;
+  optional string dest_blend_factor = 21;
+  optional string motion = 22;
+  optional .TSP.Color background_color = 23;
+  optional .TSP.Color foreground_color = 24;
+  optional .TSP.Color line_color = 25;
+  optional .TSP.Color point_color = 26;
+  optional double alpha = 27;
+  optional double border = 28;
+  optional double blend = 29;
+  optional double brightness = 30;
+  optional double border_lightness = 31;
+  optional double contrast = 32;
+  optional double damping = 33;
+  optional double density = 34;
+  optional double diffuse_power = 35;
+  optional double distortion = 36;
+  optional double entropy = 37;
+  optional double exposure = 38;
+  optional double filter = 39;
+  optional double fog_distance = 40;
+  optional double fog_power = 41;
+  optional double gamma = 42;
+  optional double grain_amount = 43;
+  optional double grain_intensity = 44;
+  optional double hue = 45;
+  optional double lightness = 46;
+  optional double line_alpha = 47;
+  optional double line_center = 48;
+  optional double line_fade = 49;
+  optional double line_fade_power = 50;
+  optional double line_length = 51;
+  optional double line_width = 52;
+  optional double noise_size_scale = 53;
+  optional double noise_size_weight = 54;
+  optional double noise_variance = 55;
+  optional double offset = 56;
+  optional double motion_background_opacity = 57;
+  optional double point_depth_alpha = 58;
+  optional double point_size = 59;
+  optional double radius = 60;
+  optional double refraction = 61;
+  optional double resolution = 62;
+  optional double saturation = 63;
+  optional double scale = 64;
+  optional double shadow_alpha = 65;
+  optional double shadow_angle = 66;
+  optional double shadow_offset = 67;
+  optional double shadow_scale = 68;
+  optional double shadow_value = 69;
+  optional double speed = 70;
+  optional double texture_power = 71;
+  optional double time = 72;
+  optional bool draw_points = 73;
+  optional bool draw_lines = 74;
+  optional bool draw_shadows = 75;
+  optional uint32 pixels_per_division = 76;
+  optional bool symmetry = 77;
+  optional bool lock_focus = 78;
+  optional double amplitude = 79;
+  optional double envelope = 80;
+  optional double y_offset = 81;
+  optional double focus = 82;
+  optional double blur = 83;
+  optional double grain_speed = 84;
+  optional .TSP.Color mesh_color = 85;
+  optional double angle = 86;
+  optional double mesh_line_width = 87;
+  optional double delta_time = 88;
+  optional double time_start = 89;
+  optional double color_contrast = 90;
+  optional double color_gamma = 91;
+  optional double color_saturation = 92;
+  optional double color_brightness = 93;
+  optional double color_hue = 94;
+  optional double color_vibrance = 95;
+  optional double noise_movement = 96;
+  optional double power = 97;
+  optional double threshold = 98;
+  optional double noise_scale_horizontal = 99;
+  optional double noise_scale_vertical = 100;
+  optional double noise_gain = 101;
+  optional double noise_lacunarity = 102;
+  optional int32 instance_count = 103;
+  optional double extrusion = 104;
+  optional double noise_offset = 105;
+  optional double color_hue_offset = 106;
+  optional double shadow_hue = 107;
+  optional double shadow_hue_offset = 108;
+  optional double shadow_saturation = 109;
+  optional double shadow_brightness = 110;
+  optional double shadow_intensity = 111;
+  optional double shadow_power = 112;
+  optional int32 noise_octaves_iterations = 113;
+}
+
+message MotionBackgroundStyleArchive {
+  required .TSS.StyleArchive super = 1;
+  optional uint32 override_count = 10 [default = 0];
+  optional .KN.MotionBackgroundStylePropertiesArchive slide_properties = 11;
+  optional .TSP.DataReference poster_frame_data = 12;
+}
+
+message MotionBackgroundFillArchive {
+  required .TSP.Reference motion_background_style = 1;
+}
+
+extend .TSD.FillArchive {
+  optional .KN.MotionBackgroundFillArchive motionBackgroundFill = 200;
 }
 

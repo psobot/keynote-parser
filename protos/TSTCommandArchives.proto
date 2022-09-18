@@ -96,7 +96,6 @@ message CommandChangeFreezeHeaderStateArchive {
 
 message CommandDeleteCellsArchive {
   required .TST.TableCommandArchive super = 1;
-  optional bool update_border_visibility = 4;
   optional bool invalidate_comments = 5;
   optional bool invalidate_comments_valid = 6;
   optional .TST.CellUIDRegionArchive cell_uid_region = 7;
@@ -169,9 +168,11 @@ message ColumnRowMetadataArchive {
 message CommandInsertColumnsOrRowsArchive {
   required .TST.TableCommandArchive super = 1;
   required .TST.ColumnRowBundleArchive bundle = 2;
-  optional .TSP.Reference cell_map = 3;
+  required .TSP.Reference concurrent_cell_map = 15;
+  required .TSP.Reference categories_cell_map = 16;
   optional .TSP.Reference undo_commands = 4;
-  optional .TSP.Reference undo_cell_map = 5;
+  optional .TSP.Reference undo_concurrent_cell_map = 17;
+  optional .TSP.Reference undo_categories_cell_map = 18;
   optional .TST.TableSortOrderUIDArchive sort_order = 6;
   optional .TST.TableGroupSortOrderUIDArchive group_sort_order = 14;
   optional .TSP.Reference filter_set = 7;
@@ -197,8 +198,10 @@ message ColumnRowBundleArchive {
 message CommandRemoveColumnsOrRowsArchive {
   required .TST.TableCommandArchive super = 1;
   required .TST.ColumnRowBundleArchive bundle = 2;
-  optional .TSP.Reference cell_map = 3;
-  optional .TSP.Reference undo_cell_map = 4;
+  optional .TSP.Reference concurrent_cell_map = 11;
+  optional .TSP.Reference categories_cell_map = 12;
+  optional .TSP.Reference undo_concurrent_cell_map = 13;
+  optional .TSP.Reference undo_categories_cell_map = 14;
   optional .TSP.Reference undo_filter_set = 5;
   optional .TST.TableSortOrderUIDArchive undo_sort_order = 6;
   optional .TST.TableGroupSortOrderUIDArchive undo_group_sort_order = 10;
@@ -881,14 +884,16 @@ message CommandPivotSetPivotRulesArchive {
   optional .TSP.UUIDRectArchive new_body_uid_tract = 30;
   optional .TSP.UUIDRectArchive old_body_uid_tract = 31;
   optional .TSP.UUID old_target_pivot_refresh_uid = 32;
-  optional .TSP.UUID new_pivot_row_column_rule_change_uid = 33;
-  optional .TSP.UUID old_pivot_row_column_rule_change_uid = 34;
-  optional .TSP.UUID new_pivot_aggregate_rule_change_uid = 35;
-  optional .TSP.UUID old_pivot_aggregate_rule_change_uid = 36;
+  optional .TSP.UUID new_target_pivot_row_column_rule_change_uid = 33;
+  optional .TSP.UUID old_target_pivot_row_column_rule_change_uid = 34;
+  optional .TSP.UUID new_target_pivot_aggregate_rule_change_uid = 35;
+  optional .TSP.UUID old_target_pivot_aggregate_rule_change_uid = 36;
   optional bool is_order_finalized = 37;
-  optional bool undo_filter_enabled = 38;
   optional .TSP.Reference new_filter_set = 39;
   optional .TSP.Reference old_filter_set = 40;
+  optional bool use_small_table_limits = 41;
+  optional int32 setting_filters_enabled = 42;
+  optional int32 undo_setting_filters_enabled = 43;
 }
 
 message CommandPivotSetGroupingColumnOptionsArchive {

@@ -102,6 +102,7 @@ message ReferencesToDirtyArchive {
   optional .TSCE.InternalCellRefSetArchive to_dirty_cells_additional = 3;
   repeated .TSCE.InternalRangeReferenceArchive to_dirty_range_refs = 4;
   optional .TSCE.InternalCellRefSetArchive calc_in_progress_cells = 6;
+  optional .TSCE.InternalCellRefSetArchive to_update_precedents_cells = 7;
 }
 
 message CoordMapperArchive {

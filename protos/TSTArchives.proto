@@ -299,7 +299,7 @@ message DataStore {
   required .TSP.Reference format_table_pre_bnc = 11;
   optional .TSP.Reference multipleChoiceListFormatTable = 16;
   optional .TSP.Reference merge_region_map = 13;
-  optional .TSP.Reference customFormatTable = 15;
+  optional .TSP.Reference deprecated_custom_format_table = 15;
   required uint32 nextRowStripID = 7;
   required uint32 nextColumnStripID = 8;
   required .TST.TableRBTree rowTileTree = 9;
@@ -666,6 +666,7 @@ message ConcurrentCellMapArchive {
   repeated .TST.MergeOperationArchive merge_actions = 3;
   optional bool may_modify_formulas_in_cells = 4 [default = true];
   optional bool may_modify_values_referenced_by_formulas = 5 [default = true];
+  optional bool affects_cell_borders = 6 [default = true];
 }
 
 message ConcurrentCellListArchive {
