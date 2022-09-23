@@ -17,14 +17,13 @@ exe = sys.argv[-1]
 debugger = lldb.SBDebugger.Create()
 debugger.SetAsync(False)
 target = debugger.CreateTargetWithFileAndArch(exe, None)
-target.BreakpointCreateByName("_sendFinishLaunchingNotification")
-target.BreakpointCreateByName("_handleAEOpenEvent:")
+target.BreakpointCreateByName("-[NSApplication _sendFinishLaunchingNotification]")
 # To get around the fact that we don't have iCloud entitlements when running re-signed code,
 # let's break in the CloudKit code and early exit the function before it can raise an exception:
 target.BreakpointCreateByName("[CKContainer containerWithIdentifier:]")
 # In later Keynote versions, 'containerWithIdentifier' isn't called directly, but we can break on similar methods:
 # Note: this __lldb_unnamed_symbol index was determined by painstaking experimentation. It will break again for sure.
-target.BreakpointCreateByName("___lldb_unnamed_symbol2482", "CloudKit")
+target.BreakpointCreateByRegex("CloudKit")
 
 process = target.LaunchSimple(None, None, os.getcwd())
 
@@ -34,7 +33,8 @@ try:
     while process.GetState() == lldb.eStateStopped:
         thread = process.GetThreadAtIndex(0)
         if thread.GetStopReason() == lldb.eStopReasonBreakpoint:
-            if any([x in str(thread.GetSelectedFrame()) for x in ["CKContainer", "CloudKit"]]):
+            frame_name = thread.GetSelectedFrame().name
+            if frame_name == '+[CKContainer containerWithIdentifier:]' or frame_name[-8:] == 'CloudKit'
                 # Skip the code in CKContainer, avoiding a crash due to missing entitlements:
                 thread.ReturnFromFrame(thread.GetSelectedFrame(), lldb.SBValue().CreateValueFromExpression("0", ""))
                 process.Continue()
