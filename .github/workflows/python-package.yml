@@ -26,6 +26,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install protobuf>=4
+        # protobuf 4 or later is necessary
+        wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
+        unzip protoc-21.9-linux-x86_64.zip -d protoc
+        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         python -m pip install --upgrade pip
         pip install flake8 pytest
