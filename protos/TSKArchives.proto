@@ -17,7 +17,7 @@ message TreeNode {
 
 message LocalCommandHistoryItem {
   optional .TSP.Reference command = 1;
-  optional .TSP.Reference selection_behavior = 2;
+  optional .TSP.Reference behavior = 2;
 }
 
 message LocalCommandHistoryArray {
@@ -55,7 +55,7 @@ message CollaborationCommandHistory {
 message CollaborationCommandHistoryItem {
   optional .TSP.Reference command = 1;
   optional string action_string = 2;
-  optional .TSP.Reference selection_behavior = 3;
+  optional .TSP.Reference behavior = 3;
   optional .TSP.Reference coalescing_group = 4;
   optional uint64 revision_sequence = 5;
 }
@@ -86,6 +86,7 @@ message DocumentArchive {
   optional bool should_measure_negatively_tracked_text_correctly = 15;
   optional bool use_optimized_text_vertical_alignment = 16;
   optional .TSK.FormattingSymbolsArchive formatting_symbols = 17;
+  optional .TSP.Reference activity_stream = 199;
 }
 
 message FormattingSymbolsArchive {
@@ -158,6 +159,8 @@ message DocumentSupportArchive {
   optional bool is_in_collaboration_mode = 9 [default = false];
   optional string action_string_localization = 12;
   optional .TSP.Reference collaboration_state = 13;
+  optional .TSP.Reference activity_notification_map = 14;
+  optional .TSP.Reference removed_author_auditor_pending_state = 15;
   optional .TSP.Reference command_selection_behavior_history = 2 [deprecated = true];
   optional .TSP.Reference view_state = 3 [deprecated = true];
   optional .TSP.Reference collaboration_command_history = 10 [deprecated = true];
@@ -185,6 +188,7 @@ message CommandGroupArchive {
   repeated .TSP.Reference commands = 2;
   optional .TSP.IndexSet process_results = 3;
   optional string action_string = 4;
+  optional bool can_coalesce_group = 5;
 }
 
 message InducedCommandCollectionArchive {
@@ -291,6 +295,7 @@ message AnnotationAuthorArchive {
   optional .TSP.Color color = 2;
   optional string public_id = 3;
   optional bool is_public_author = 4;
+  repeated string public_ids = 5;
 }
 
 message DeprecatedChangeAuthorArchive {
@@ -309,16 +314,32 @@ message SetAnnotationAuthorColorCommandArchive {
   optional .TSP.Color old_color = 4;
 }
 
+message SetActivityAuthorShareParticipantIDCommandArchive {
+  required .TSK.CommandArchive super = 1;
+  optional .TSP.Reference activity_author = 2;
+  optional string share_participant_id = 3;
+  optional string old_share_participant_id = 4;
+}
+
+message CommandBehaviorSelectionPathStorageArchive {
+  optional .TSK.SelectionPathArchive archived_selection = 1;
+  optional .TSK.SelectionPathArchive archived_old_selection = 2;
+  optional .TSK.SelectionPathArchive archived_new_selection = 3;
+  optional .TSP.Reference forward_selection_path_transformer = 4;
+  optional .TSP.Reference reverse_selection_path_transformer = 5;
+}
+
+message CommandBehaviorArchive {
+  optional .TSP.Reference selection_behavior = 1;
+  optional .TSP.Reference activity_behavior = 2;
+}
+
 message CommandSelectionBehaviorArchive {
-  optional .TSK.SelectionPathArchive archived_selection = 8;
-  optional .TSK.SelectionPathArchive archived_old_selection = 1;
-  optional .TSK.SelectionPathArchive archived_new_selection = 2;
-  optional uint64 selection_flags = 3;
-  optional uint64 additional_forward_selection_flags = 4;
-  optional uint64 additional_reverse_selection_flags = 5;
-  optional .TSP.Reference forward_selection_path_transformer = 6;
-  optional .TSP.Reference reverse_selection_path_transformer = 7;
-  repeated .TSP.Reference additional_selection_behaviors = 9;
+  optional .TSP.Reference selection_path_storage = 1;
+  optional uint64 selection_flags = 2;
+  optional uint64 additional_forward_selection_flags = 3;
+  optional uint64 additional_reverse_selection_flags = 4;
+  repeated .TSP.Reference additional_selection_behaviors = 5;
 }
 
 message SelectionPathTransformerArchive {
@@ -374,6 +395,13 @@ message UpgradeDocPostProcessingCommandArchive {
 
 message InducedCommandCollectionCommitCommandArchive {
   required .TSK.CommandArchive super = 1;
+}
+
+message ActivityCommitCommandArchive {
+  required .TSK.CommandArchive super = 1;
+  optional .TSP.Reference activity = 2;
+  optional .TSP.Reference author = 3;
+  optional bool was_activity_committed = 4 [default = true];
 }
 
 message ExecuteTestBetweenRollbackAndReapplyCommandArchive {
@@ -454,6 +482,14 @@ message OutgoingCommandQueueItemUUIDToDataMapEntry {
   required .TSP.DataReference data = 2;
 }
 
+message CollaborationAppliedCommandDocumentRevisionMapping {
+  optional .TSP.Reference command = 1;
+  optional .TSP.UUID document_revision_identifier = 2;
+  optional int32 document_revision_sequence = 3;
+  repeated .TSK.Operation remaining_command_operations = 4;
+  optional .TSP.Date timestamp = 5;
+}
+
 message CollaborationDocumentSessionState {
   message AcknowledgementObserverEntry {
     required .TSP.UUID command_identifier = 1;
@@ -477,6 +513,8 @@ message CollaborationDocumentSessionState {
   optional .TSP.Reference send_pending_command_queue = 18;
   optional uint64 count_of_send_pending_command_queue_items_moved_from_rsvp_queue = 19 [default = 0];
   optional .TSP.UUID last_enqueued_document_load_command_identifier = 20;
+  repeated .TSK.CollaborationAppliedCommandDocumentRevisionMapping applied_command_document_revision_mappings_to_notify_pending_resume_process_diffs = 21;
+  optional uint64 count_of_command_queue_items_in_last_outgoing_command_group = 22 [default = 0];
 }
 
 message NativeContentDescription {
@@ -515,6 +553,7 @@ message OperationStorageEntry {
   repeated .TSK.OperationStorageCommandOperationsEntry command_operation_entries = 3;
   optional double first_entry_creation_time = 4;
   optional int32 creation_time_diff_bucket = 5;
+  repeated uint32 file_format_version = 6 [packed = true];
 }
 
 message OperationStorageEntryArray {
@@ -595,5 +634,218 @@ message PencilAnnotationUIState {
   optional .TSP.Color highlighter_tool_color = 5;
   optional float highlighter_tool_opacity = 6;
   optional float highlighter_tool_width = 7;
+}
+
+message CollaboratorCursorArchive {
+  optional .TSP.UUIDPath id_path = 1;
+  extensions 100 to 999;
+}
+
+message ActivityStreamArchive {
+  optional .TSP.Reference acknowledged_activity_array = 1;
+  optional .TSP.Reference unacknowledged_local_activity_array = 2;
+  optional .TSP.Reference author_cache = 3;
+  optional .TSP.Reference unacknowledged_remote_activity_array = 5;
+  optional bool did_upgrade_comments_to_activities = 6;
+  optional .TSK.ActivityStreamTransformationStateArchive activity_stream_transformation_state = 15;
+  optional .TSK.ActivityStreamActivityCounterArchive activity_counter = 16;
+}
+
+message ActivityStreamActivityArray {
+  optional .TSP.LargeObjectArray large_array = 1;
+}
+
+message ActivityStreamActivityArraySegment {
+  optional .TSP.LargeObjectArraySegment large_array_segment = 1;
+}
+
+message ActivityArchive {
+  repeated .TSP.Reference cursor_collection_persistence_wrappers = 1;
+  optional .TSP.UUID author_identifier = 2;
+  optional int32 nondirectional_action_type = 3;
+  optional int32 direction = 4;
+  optional bool should_send_notification = 5;
+  optional .TSP.Date timestamp = 6;
+  optional int32 revision_sequence = 7;
+  optional .TSK.ActivityNavigationInfoArchive additional_navigation_info = 8;
+  optional bool did_prepare_serialized_string_on_server = 9;
+  optional int32 oldest_revision_sequence_of_next_activities = 10;
+  optional int32 action_sub_type = 11 [default = 0];
+  repeated uint32 min_updatable_version = 12 [packed = true];
+}
+
+message ActivityAuthorArchive {
+  optional string name = 1;
+  optional .TSP.Color color = 2;
+  repeated string public_ids = 3;
+  optional bool is_public_author = 4;
+  optional string share_participant_id = 5;
+}
+
+message CommandActivityBehaviorArchive {
+  enum ActionType {
+    Unknown = 0;
+    FirstJoin = 1;
+    Add = 2;
+    Modify = 3;
+    Comment = 4;
+    Reply = 5;
+    Paste = 6;
+    Password = 7;
+    Restore = 8;
+    Remove = 9;
+    EditText = 10;
+    Group = 11;
+    Ungroup = 12;
+    Replace = 13;
+  }
+  enum ActionSubType {
+    None = 0;
+    FilterTable = 1;
+    SortTable = 2;
+    CategorizeTable = 3;
+    ChangeTemplateSlide = 4;
+    ChangeChartType = 5;
+    MoveDrawable = 6;
+    ResizeDrawable = 7;
+    AddOrRemovePage = 8;
+    Hyperlink = 9;
+    SkipSlide = 10;
+    UnskipSlide = 11;
+    ChangeBackground = 12;
+    ChangePageTemplate = 13;
+    InsertPageNumber = 14;
+    RefreshPivotTable = 15;
+    AddPassword = 16;
+    ChangePassword = 17;
+    RemovePassword = 18;
+    Bookmark = 19;
+    Equation = 20;
+    SectionBreak = 21;
+    MoveColumn = 22;
+  }
+  repeated .TSP.Reference selection_path_storages = 1;
+  optional .TSK.CommandActivityBehaviorArchive.ActionType action_type = 2;
+  optional bool should_send_notification = 3;
+  optional .TSK.ActivityNavigationInfoArchive additional_navigation_info = 4;
+  optional .TSK.CommandActivityBehaviorArchive.ActionSubType action_sub_type = 5 [default = None];
+}
+
+message ActivityCursorCollectionArchive {
+  repeated .TSK.CollaboratorCursorArchive id_cursors = 1;
+  optional .TSK.CollaboratorCursorArchive text_cursor = 2;
+  optional .TSK.CollaboratorCursorArchive table_cursor = 3;
+  optional .TSK.CollaboratorCursorArchive cde_cursor = 4;
+  optional .TSK.CollaboratorCursorArchive chart_title_cursor = 5;
+  optional .TSK.CollaboratorCursorArchive gallery_item_cursor = 6;
+}
+
+message ActivityCursorCollectionPersistenceWrapperArchive {
+  optional .TSK.ActivityCursorCollectionArchive activity_cursor_collection = 1;
+}
+
+message ActivityNavigationInfoArchive {
+  extensions 100 to 999;
+}
+
+message CommentActivityNavigationInfoArchive {
+  required string comment_id = 1;
+  required .TSP.UUID parent_uuid = 2;
+  required .TSP.UUID storage_uuid = 3;
+  extend .TSK.ActivityNavigationInfoArchive {
+    optional .TSK.CommentActivityNavigationInfoArchive comment_activity_navigation_info = 100;
+  }
+}
+
+message ActivityAuthorCacheArchive {
+  message ShareParticipantIDCache {
+    required .TSP.UUID identifier = 1;
+    required string share_participant_id = 2;
+  }
+  message PublicIDCache {
+    required .TSP.UUID identifier = 1;
+    required string public_identifier = 2;
+  }
+  message IndexCache {
+    required .TSP.UUID identifier = 1;
+    required uint64 author_index = 2;
+  }
+  message FirstJoinCache {
+    required .TSP.UUID identifier = 1;
+    optional .TSP.Date first_join_date = 2;
+  }
+  repeated .TSK.ActivityAuthorCacheArchive.ShareParticipantIDCache share_participant_id_cache = 1;
+  repeated .TSK.ActivityAuthorCacheArchive.PublicIDCache fallback_public_id_cache = 3;
+  repeated .TSK.ActivityAuthorCacheArchive.IndexCache index_cache = 4;
+  repeated .TSK.ActivityAuthorCacheArchive.FirstJoinCache first_join_cache = 5;
+  repeated .TSP.Reference authors = 6;
+  optional .TSP.Date last_audit_date = 7;
+  repeated .TSP.UUID author_identifiers_to_remove = 8;
+}
+
+message ActivityOnlyCommandArchive {
+  required .TSK.CommandArchive super = 1;
+}
+
+message ActivityNotificationItemArchive {
+  required int32 type = 1;
+  required .TSP.UUID unique_identifier = 2;
+  repeated .TSP.Reference activities = 3;
+  optional .TSP.Date first_timestamp = 4;
+}
+
+message ActivityNotificationParticipantCacheArchive {
+  message UniqueIdentifierAndAttempts {
+    required .TSP.UUID unique_identifier = 1;
+    required uint32 attempts = 2;
+  }
+  repeated .TSP.Reference notification_items = 1;
+  optional .TSP.Date last_edit_notification_item_sent_date = 2;
+  repeated .TSK.ActivityNotificationParticipantCacheArchive.UniqueIdentifierAndAttempts sender_failed_to_enqueue_attempts = 3;
+  required string private_id = 4;
+  optional .TSP.Date last_comment_notification_item_sent_date = 5;
+}
+
+message ActivityNotificationQueueArchive {
+  repeated .TSP.Reference unprocessed_notification_items = 1;
+  repeated .TSP.Reference pending_participant_caches = 3;
+  repeated .TSP.Reference sent_participant_caches = 5;
+}
+
+message ActivityStreamTransformationStateArchive {
+  enum ActionType {
+    Trasnform = 0;
+    Coalesce = 1;
+  }
+  required int32 next_activity_to_transform_index = 1;
+  optional int32 oldest_revision_sequence_after_transformed = 2;
+  optional .TSP.Date last_activity_coalesced_date = 3;
+  optional .TSK.ActivityStreamTransformationStateArchive.ActionType action_type = 4;
+  optional int32 transform_to_document_revision_sequence = 5;
+  repeated fixed64 transform_to_document_revision_identifier = 6 [packed = true];
+  optional double timestamp_of_last_activity_when_last_activity_coalescing = 7;
+  optional bool preserving_revision_sequence_order = 8;
+}
+
+message ActivityStreamActivityCounterArchive {
+  message ActionTypeCounter {
+    optional int32 action_type = 1;
+    optional uint32 count = 2;
+  }
+  message CursorTypeCounter {
+    optional int32 cursor_type = 1;
+    optional uint32 count = 2;
+  }
+  repeated .TSK.ActivityStreamActivityCounterArchive.ActionTypeCounter action_type_counter = 1;
+  repeated .TSK.ActivityStreamActivityCounterArchive.CursorTypeCounter cursor_type_counter = 2;
+}
+
+message ActivityStreamRemovedAuthorAuditorPendingStateArchive {
+  message DateToAuditAndType {
+    required .TSP.Date date_to_audit = 1;
+    required int32 type = 2;
+  }
+  repeated .TSP.UUID current_author_identifiers = 1;
+  repeated .TSK.ActivityStreamRemovedAuthorAuditorPendingStateArchive.DateToAuditAndType dates_to_audit = 3;
 }
 

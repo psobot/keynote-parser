@@ -302,6 +302,7 @@ message SlideNodeArchive {
   optional bool background_is_no_fill_or_color_fill_with_alpha = 28;
   optional .TSP.UUID template_slide_id = 29;
   repeated .TSP.UUID live_video_source_ids = 30;
+  repeated .KN.LiveVideoSourceUsageEntry live_video_source_usage_entries = 31;
   optional .TSP.Reference database_thumbnail = 3 [deprecated = true];
   repeated .TSP.Reference database_thumbnails = 9 [deprecated = true];
 }
@@ -325,6 +326,8 @@ message DesktopUILayoutArchive {
   optional bool showing_template_slides = 8;
   optional bool inspector_pane_autohidden = 9;
   optional bool element_list_visible = 10;
+  optional bool activity_stream_visible = 11;
+  optional bool activity_stream_was_visible = 12;
 }
 
 message UIStateArchive {
@@ -369,6 +372,7 @@ message UIStateArchive {
   optional .TSP.Reference selection_path_transformer = 38;
   optional bool shows_mobile_outline = 40;
   optional bool editing_disabled = 41;
+  optional float desktop_activity_stream_view_width = 42;
 }
 
 message IOSRestorableViewStateRootArchive {
@@ -651,6 +655,8 @@ message LiveVideoInfo {
   optional .TSP.Point normalized_offset = 4;
   optional int32 mask_kind = 5;
   optional double mask_corner_radius = 6;
+  optional int32 background_kind = 7;
+  optional .TSD.FillArchive background_fill = 8;
   extend .TSD.MovieArchive {
     optional .KN.LiveVideoInfo live_video_info = 100;
   }
@@ -690,6 +696,10 @@ message LiveVideoCaptureDeviceDescription {
 message LiveVideoSourceCollection {
   repeated .TSP.Reference sources = 1;
   optional .TSP.Reference default_source = 2;
+}
+
+message LiveVideoSourceUsageEntry {
+  repeated int32 background_kinds = 1;
 }
 
 message MotionBackgroundStylePropertiesArchive {

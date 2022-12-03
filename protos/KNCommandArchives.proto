@@ -552,6 +552,8 @@ message CommandLiveVideoInfoSetValue {
     optional int32 mask_kind = 3;
     optional double mask_corner_radius = 4;
     optional bool is_placeholder = 5;
+    optional int32 background_kind = 6;
+    optional .TSD.FillArchive background_fill = 7;
   }
   enum Property {
     Scale = 0;
@@ -559,6 +561,8 @@ message CommandLiveVideoInfoSetValue {
     MaskKind = 2;
     MaskCornerRadius = 3;
     IsPlaceholder = 4;
+    BackgroundKind = 5;
+    BackgroundFill = 6;
   }
   required .TSK.CommandArchive super = 1;
   required .TSP.UUIDPath live_video_info_id_path = 2;

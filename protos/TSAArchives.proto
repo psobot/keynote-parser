@@ -236,6 +236,14 @@ message GalleryItemSetValueCommand {
   optional .TSA.GalleryItemSetValueCommand.PropertyValue old_value = 5;
 }
 
+message CollaboratorGalleryItemCursor {
+  optional .TSP.UUID displayed_item_id = 1;
+  repeated .TSP.UUID item_ids = 2;
+  extend .TSK.CollaboratorCursorArchive {
+    optional .TSA.CollaboratorGalleryItemCursor gallery_item_cursor = 400;
+  }
+}
+
 message WebVideoInfo {
   optional string url = 1;
   optional .TSP.DataReference poster_image_data = 2;

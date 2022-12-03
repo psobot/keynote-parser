@@ -24,6 +24,10 @@ message CommandReapplyMasterArchive {
   required bool is_undo = 4;
 }
 
+message VerifyActivityStreamWithServerCommandArchive {
+  required .TSK.CommandArchive super = 1;
+}
+
 message VerifyDocumentWithServerCommandArchive {
   required .TSK.CommandArchive super = 1;
 }
