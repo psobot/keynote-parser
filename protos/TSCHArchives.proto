@@ -273,6 +273,23 @@ message PropertyValueStorageContainerReferenceLinesArchive {
   optional .TSP.Reference theme_preset_reference_line_style = 3;
 }
 
+message CollaboratorCDECursorSubselectionArchive {
+  optional int32 row_location = 1;
+  optional int32 row_length = 2;
+  optional int32 column_location = 3;
+  optional int32 column_length = 4;
+  extend .TSK.CollaboratorCursorArchive {
+    optional .TSCH.CollaboratorCDECursorSubselectionArchive cde_cursor_subselection = 300;
+  }
+}
+
+message CollaboratorChartTitleCursorSubselectionArchive {
+  optional bool chart_title_selected = 1;
+  extend .TSK.CollaboratorCursorArchive {
+    optional .TSCH.CollaboratorChartTitleCursorSubselectionArchive chart_title_cursor_subselection = 301;
+  }
+}
+
 extend .TSCH.ChartArchive {
   optional bool scene3d_settings_constant_depth = 10002;
   optional string last_applied_fill_set_lookup_string = 10004;

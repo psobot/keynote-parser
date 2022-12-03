@@ -232,6 +232,8 @@ message ImageMaskCommandArchive {
   required .TSD.InfoCommandArchive super = 1;
   optional .TSP.Reference newMaskInfo = 2;
   optional .TSP.Reference oldMaskInfo = 3;
+  optional bool background_removed = 4;
+  optional bool old_background_removed = 5;
 }
 
 message ImageAdjustmentsCommandArchive {
@@ -383,6 +385,8 @@ message ImageInfoAbstractGeometryCommandArchive {
   optional .TSD.PathSourceArchive old_mask_path_source = 7;
   optional .TSP.Size new_image_original_size = 8;
   optional .TSP.Size old_image_original_size = 9;
+  optional bool background_removed = 10;
+  optional bool old_background_removed = 11;
 }
 
 message ImageInfoGeometryCommandArchive {

@@ -401,6 +401,7 @@ message ImageArchive {
   optional .TSP.Path traced_path = 19;
   optional .TSD.Attribution attribution = 20;
   optional bool should_trace_pdf_content = 21;
+  optional bool background_removed = 22;
   extensions 100 to 999;
 }
 
@@ -560,6 +561,7 @@ message CommentStorageArchive {
   optional .TSP.Date creation_date = 2;
   optional .TSP.Reference author = 3;
   repeated .TSP.Reference replies = 4;
+  optional .TSP.UUID storage_uuid = 5;
 }
 
 message ReplaceAnnotationAuthorCommandArchive {

@@ -7,7 +7,7 @@ import "TSKArchives.proto";
 package TSWP;
 
 enum SelectionType {
-  SelectionType_Normal = 0 [deprecated = true];
+  SelectionType_Normal = 0;
   SelectionType_ListLabel = 1;
   SelectionType_ListTopic = 2;
   SelectionType_Replace = 3;
@@ -959,6 +959,13 @@ message DropCapStyleArchive {
   optional uint32 override_count = 10 [default = 0];
   optional .TSWP.CharacterStylePropertiesArchive char_properties = 11;
   optional .TSWP.DropCapStylePropertiesArchive drop_cap_properties = 12;
+}
+
+message CollaboratorTextCursorSubselectionArchive {
+  optional .TSWP.SelectionArchive text_selection = 1;
+  extend .TSK.CollaboratorCursorArchive {
+    optional .TSWP.CollaboratorTextCursorSubselectionArchive text_cursor_subselection = 100;
+  }
 }
 
 extend .TSS.CommandPropertyEntryArchive {

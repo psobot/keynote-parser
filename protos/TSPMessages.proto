@@ -228,6 +228,7 @@ message LargeArray {
   optional uint32 delayed_archiving_priority = 6;
   optional bool store_outside_object_archive = 7;
   optional uint64 estimated_byte_size = 8;
+  optional uint64 max_segment_cost = 9;
 }
 
 message LargeNumberArray {
