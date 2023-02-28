@@ -701,12 +701,13 @@ TSPRegistryMapping = {
     "11027": "TSP.LargeObjectArray",
 }
 
-
 def compute_maps():
     name_class_map = {}
     for file in PROTO_FILES:
         for message_name in file.DESCRIPTOR.message_types_by_name:
             message_type = getattr(file, message_name)
+            for m in message_type.DESCRIPTOR.nested_types:
+                name_class_map[m.full_name] = message_type
             name_class_map[message_type.DESCRIPTOR.full_name] = message_type
 
     id_name_map = {}

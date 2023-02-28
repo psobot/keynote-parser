@@ -236,6 +236,8 @@ class IWAArchiveSegment(object):
         # Each message_info as part of the header needs to be updated
         # so that its length matches the object contained within.
         for obj, message_info in zip(self.objects, self.header.message_infos):
+            if (obj.DESCRIPTOR.full_name == "TST.GroupByArchive"):
+                obj.is_enabled = True
             try:
                 object_length = len(obj.SerializeToString())
                 provided_length = message_info.length
