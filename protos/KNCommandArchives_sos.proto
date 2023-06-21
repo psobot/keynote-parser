@@ -20,4 +20,3 @@ message InducedVerifyDrawableZOrdersWithServerCommandArchive {
 message CommandSlideReapplyTemplateSlideArchive {
   required .TSASOS.CommandReapplyMasterArchive super = 1;
 }
-

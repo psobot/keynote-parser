@@ -23,8 +23,8 @@ target.BreakpointCreateByName("_handleAEOpenEvent:")
 # let's break in the CloudKit code and early exit the function before it can raise an exception:
 target.BreakpointCreateByName("[CKContainer containerWithIdentifier:]")
 # In later Keynote versions, 'containerWithIdentifier' isn't called directly, but we can break on similar methods:
-# Note: this __lldb_unnamed_symbol index was determined by painstaking experimentation. It will break again for sure.
-target.BreakpointCreateByName("___lldb_unnamed_symbol2482", "CloudKit")
+# Note: this __lldb_unnamed_symbol hack was determined by painstaking experimentation. It will break again for sure.
+target.BreakpointCreateByRegex("___lldb_unnamed_symbol[0-9]+", "CloudKit")
 
 process = target.LaunchSimple(None, None, os.getcwd())
 
@@ -40,6 +40,9 @@ try:
                 process.Continue()
             else:
                 break
+        elif thread.GetStopReason() == lldb.eStopReasonException:
+            sys.stderr.write(repr(thread) + "\n")
+            raise NotImplementedError(f"LLDB caught exception, {__file__} needs to be updated to handle.")
     if process.GetState() == lldb.eStateStopped:
         if thread:
             frame = thread.GetFrameAtIndex(0)

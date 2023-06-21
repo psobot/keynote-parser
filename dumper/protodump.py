@@ -9,14 +9,150 @@ Example usage:
 Inspired by Sean Patrick O'Brien (@obriensp)'s 2013 "proto-dump": https://github.com/obriensp/proto-dump
 """
 
+import sys
 from pathlib import Path
 from tqdm import tqdm
+from typing import List
+from collections import defaultdict
 
 from google.protobuf.internal.decoder import _DecodeVarint, SkipField
 from google.protobuf import descriptor_pb2
 from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.message import DecodeError
-from google.protobuf.internal import api_implementation
+
+
+PROTO_TYPES = {
+  1: 'double',
+  2: 'float',
+  3: 'int64',
+  4: 'uint64',
+  5: 'int32',
+  6: 'fixed64',
+  7: 'fixed32',
+  8: 'bool',
+  9: 'string',
+  12: 'bytes',
+  13: 'uint32',
+  15: 'sfixed32',
+  16: 'sfixed64',
+  17: 'sint32',
+  18: 'sint64',
+}
+
+def to_proto_file(fds: descriptor_pb2.FileDescriptorSet) -> str:
+    if len(fds.file) != 1:
+        raise NotImplementedError("Only one file per fds.")
+    f = fds.file[0]
+    lines = [
+        "syntax = \"proto2\";",
+        ""
+    ]
+
+    for dependency in f.dependency:
+        lines.append(f'import "{dependency}";')
+
+    lines.append(f'package {f.package};')
+    lines.append("")
+
+    def generate_enum_lines(f, lines: List[str], indent: int = 0):
+        prefix = "  " * indent
+        for enum in f.enum_type:
+            lines.append(prefix + f"enum {enum.name} " + '{')
+            for value in enum.value:
+                lines.append(prefix + f"  {value.name} = {value.number};")
+            lines.append(prefix + '}')
+
+
+    def generate_field_line(field, in_oneof: bool = False) -> str:
+        line = []
+        if field.label == 1:
+            if not in_oneof:
+                line.append("optional")
+        elif field.label == 2:
+            line.append("required")
+        elif field.label == 3:
+            line.append("repeated")
+        else:
+            raise NotImplementedError("Unknown field label type!")
+
+        if field.type in PROTO_TYPES:
+            line.append(PROTO_TYPES[field.type])
+        elif field.type == 11 or field.type == 14: # MESSAGE
+            line.append(field.type_name)
+        else:
+            raise NotImplementedError(f"Unknown field type {field.type}!")
+
+        line.append(field.name)
+        line.append("=")
+        line.append(str(field.number));
+        options = []
+        if field.default_value:
+            options.append(f"default = {field.default_value}")
+        if field.options.deprecated:
+            options.append("deprecated = true")
+        if field.options.packed:
+            options.append("packed = true")
+        # TODO: Protobuf supports other options in square brackets!
+        # Add support for them here to make this feature-complete.
+        if options:
+            line.append(f"[{', '.join(options)}]")
+        return f"  {' '.join(line)};"
+
+    def generate_extension_lines(message, lines: List[str], indent: int = 0):
+        prefix = "  " * indent
+        extensions_grouped_by_extendee = defaultdict(list)
+        for extension in message.extension:
+            extensions_grouped_by_extendee[extension.extendee].append(extension)
+        for extendee, extensions in extensions_grouped_by_extendee.items():
+            lines.append(prefix + f"extend {extendee} {{")
+            for extension in extensions:
+                lines.append(prefix + generate_field_line(extension))
+            lines.append(prefix + "}")
+
+    def generate_message_lines(f, lines: List[str], indent: int = 0):
+        prefix = "  " * indent
+
+        submessages = f.message_type if hasattr(f, 'message_type') else f.nested_type
+
+        for message in submessages:
+            # if message.name == "ContainedObjectsCommandArchive":
+            #     breakpoint()
+            lines.append(prefix + f"message {message.name} " + '{')
+
+            generate_enum_lines(message, lines, indent + 1)
+            generate_message_lines(message, lines, indent + 1)
+
+            for field in message.field:
+                if not field.HasField("oneof_index"):
+                    lines.append(prefix + generate_field_line(field))
+
+            # ...then the oneofs:
+            next_prefix = "  " * (indent + 1)
+            for oneof_index, oneof in enumerate(message.oneof_decl):
+                lines.append(next_prefix + f"oneof {oneof.name} {{")
+                for field in message.field:
+                    if field.HasField("oneof_index") and field.oneof_index == oneof_index:
+                        lines.append(next_prefix + generate_field_line(field, in_oneof=True))
+                lines.append(next_prefix + "}")
+
+            if len(message.extension_range):
+                if len(message.extension_range) > 1:
+                    raise NotImplementedError("Not sure how to handle multiple extension ranges!")
+                start, end = (
+                    message.extension_range[0].start,
+                    min(message.extension_range[0].end, 536870911)
+                )
+                lines.append(next_prefix + f"extensions {start} to {end};")
+
+            generate_extension_lines(message, lines, indent + 1)
+            lines.append(prefix + '}')
+            lines.append('')
+
+    generate_enum_lines(f, lines)
+    generate_message_lines(f, lines)
+    generate_extension_lines(f, lines)
+
+    return "\n".join(lines)
 
 
 class ProtoFile(object):
@@ -39,6 +175,8 @@ class ProtoFile(object):
         try:
             return self.pool.Add(self.file_descriptor_proto)
         except Exception as e:
+            if "duplicate file name" in str(e):
+                return self.pool.FindFileByName(e.args[0].split("duplicate file name")[1].strip())
             return None
 
     @property
@@ -46,12 +184,15 @@ class ProtoFile(object):
         return self.attempt_to_load()
 
     def __repr__(self):
-        return "<%s: path=\"%s\">" % (self.__class__.__name__, self.path)
+        return '<%s: path="%s">' % (self.__class__.__name__, self.path)
 
     @property
     def source(self):
         if self.descriptor:
-            return self.descriptor.GetDebugString()
+            fds = descriptor_pb2.FileDescriptorSet()
+            fds.file.append(descriptor_pb2.FileDescriptorProto())
+            fds.file[0].ParseFromString(self.descriptor.serialized_pb)
+            return to_proto_file(fds)
         return None
 
 
@@ -77,11 +218,11 @@ def read_until_null_tag(data):
 
 
 def extract_proto_from_file(filename, descriptor_pool):
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         data = f.read()
     offset = 0
 
-    PROTO_MARKER = b'.proto'
+    PROTO_MARKER = b".proto"
 
     while True:
         # Look for ".proto"
@@ -89,7 +230,7 @@ def extract_proto_from_file(filename, descriptor_pool):
         if suffix_position == -1:
             break
 
-        marker_start = data.rfind(b'\x0A', offset, suffix_position)
+        marker_start = data.rfind(b"\x0A", offset, suffix_position)
         if marker_start == -1:
             # Doesn't look like a proto descriptor
             offset = suffix_position + len(PROTO_MARKER)
@@ -163,16 +304,9 @@ def main():
     parser.add_argument("output_path", help="Output directory to dump .protoc files to.")
 
     args = parser.parse_args()
-
-    if api_implementation.Type() != "cpp":
-        raise NotImplementedError(
-            "This script requires the Protobuf installation to use the C++ implementation. Please"
-            " reinstall Protobuf with C++ support."
-        )
-
     GLOBAL_DESCRIPTOR_POOL = DescriptorPool()
 
-    all_filenames = [str(path) for path in Path(args.input_path).rglob('*') if not path.is_dir()]
+    all_filenames = [str(path) for path in Path(args.input_path).rglob("*") if not path.is_dir()]
 
     print(
         f"Scanning {len(all_filenames):,} files under {args.input_path} for protobuf definitions..."
@@ -190,11 +324,16 @@ def main():
         if not found.attempt_to_load():
             missing_deps.update(find_missing_dependencies(proto_files_found, found.path))
 
+    for found in proto_files_found:
+        if not found.attempt_to_load():
+            missing_deps.add(found)
+
     if missing_deps:
         print(
             f"Unable to print out all Protobuf definitions; {len(missing_deps):,} proto files could"
             f" not be found:\n{missing_deps}"
         )
+        sys.exit(1)
     else:
         for proto_file in tqdm(proto_files_found):
             Path(args.output_path).mkdir(parents=True, exist_ok=True)

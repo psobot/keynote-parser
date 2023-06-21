@@ -238,4 +238,3 @@ message SlideStylePropertyChangeSetArchive {
   optional .KNSOS.SpecTransitionAttributesArchive slide_transition = 3;
   optional bool slide_transition_undefined = 4;
 }
-

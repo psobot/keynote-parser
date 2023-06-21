@@ -10,7 +10,6 @@ enum LineJoin {
   RoundJoin = 1;
   BevelJoin = 2;
 }
-
 message EdgeInsetsArchive {
   required float top = 1;
   required float left = 2;
@@ -76,21 +75,23 @@ message ConnectionLinePathSourceArchive {
 }
 
 message EditableBezierPathSourceArchive {
+  enum NodeType {
+    sharp = 1;
+    bezier = 2;
+    smooth = 3;
+  }
   message Node {
     required .TSP.Point inControlPoint = 1;
     required .TSP.Point nodePoint = 2;
     required .TSP.Point outControlPoint = 3;
     required .TSD.EditableBezierPathSourceArchive.NodeType type = 4;
   }
+
   message Subpath {
     repeated .TSD.EditableBezierPathSourceArchive.Node nodes = 1;
     required bool closed = 2;
   }
-  enum NodeType {
-    sharp = 1;
-    bezier = 2;
-    smooth = 3;
-  }
+
   repeated .TSD.EditableBezierPathSourceArchive.Subpath subpaths = 1;
   optional .TSP.Size naturalSize = 2;
 }
@@ -119,15 +120,16 @@ message TransformGradientArchive {
 }
 
 message GradientArchive {
+  enum GradientType {
+    Linear = 0;
+    Radial = 1;
+  }
   message GradientStop {
     optional .TSP.Color color = 1;
     optional float fraction = 2;
     optional float inflection = 3;
   }
-  enum GradientType {
-    Linear = 0;
-    Radial = 1;
-  }
+
   optional .TSD.GradientArchive.GradientType type = 1;
   repeated .TSD.GradientArchive.GradientStop stops = 2;
   optional float opacity = 3;
@@ -237,12 +239,12 @@ message DropShadowArchive {
 }
 
 message ContactShadowArchive {
-  optional float height = 2 [default = 0.2];
+  optional float height = 2 [default = 0.200000003];
   optional float offset = 4 [default = 0];
 }
 
 message CurvedShadowArchive {
-  optional float curve = 1 [default = 0.6];
+  optional float curve = 1 [default = 0.600000024];
 }
 
 message ReflectionArchive {
@@ -388,6 +390,7 @@ message ImageArchive {
   optional .TSP.DataReference thumbnailData = 12;
   optional uint32 flags = 7;
   optional .TSP.DataReference originalData = 13;
+  optional .TSP.DataReference originalSVGData = 23;
   optional .TSP.Size naturalSize = 9;
   optional .TSP.Path instantAlphaPath = 10;
   optional .TSD.ImageAdjustmentsArchive imageAdjustments = 14;
@@ -402,7 +405,7 @@ message ImageArchive {
   optional .TSD.Attribution attribution = 20;
   optional bool should_trace_pdf_content = 21;
   optional bool background_removed = 22;
-  extensions 100 to 999;
+  extensions 100 to 1000;
 }
 
 message MaskArchive {
@@ -455,7 +458,7 @@ message MovieArchive {
   optional .TSD.Attribution attribution = 26;
   optional .TSD.MovieFingerprint fingerprint = 29;
   optional bool is_live_video = 30 [default = false];
-  extensions 100 to 999;
+  extensions 100 to 1000;
 }
 
 message ExteriorTextWrapArchive {
@@ -702,4 +705,3 @@ extend .TSS.CommandPropertyEntryArchive {
   optional .TSD.FillArchive fill = 200;
   optional .TSD.StrokeArchive stroke = 201;
 }
-

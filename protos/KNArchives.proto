@@ -219,13 +219,16 @@ message SlideArchive {
     required string tag = 1;
     required .TSP.Reference info = 2;
   }
+
   message InstructionalTextMap {
     message InstructionalTextMapEntry {
       optional .TSP.Reference info = 1;
       required string instructional_text = 2;
     }
+
     repeated .KN.SlideArchive.InstructionalTextMap.InstructionalTextMapEntry instructional_text_for_infos = 1;
   }
+
   required .TSP.Reference style = 1;
   repeated .TSP.Reference builds = 2;
   repeated .KN.BuildChunkArchive buildChunkArchives = 3 [deprecated = true];
@@ -274,6 +277,7 @@ message SlideNodeArchive {
     required string slideNodeIDString = 1;
     repeated string infoOrStorageIDString = 2;
   }
+
   repeated .TSP.Reference children = 1;
   optional .TSP.Reference slide = 2;
   optional uint32 depth = 21 [default = 1];
@@ -281,7 +285,7 @@ message SlideNodeArchive {
   repeated .TSP.Size thumbnailSizes = 10;
   optional bool thumbnailsAreDirty = 14;
   repeated string digests_for_datas_needing_download_for_thumbnail = 25;
-  required bool isHidden = 4;
+  required bool isSkipped = 4;
   optional bool isCollapsed = 5 [deprecated = true];
   optional bool isCollapsedInOutlineView = 17 [deprecated = true];
   optional bool hasBodyInOutlineView = 19 [deprecated = true];
@@ -485,6 +489,7 @@ message PasteboardNativeStorageArchive {
     optional .TSP.Reference live_video_info = 1;
     optional .TSP.Reference live_video_source = 2;
   }
+
   repeated .TSP.Reference drawables = 1;
   repeated .TSP.Reference builds = 2;
   repeated .TSP.Reference buildChunks = 3;
@@ -624,6 +629,7 @@ message SlideCollectionSelectionArchive {
     required .TSP.Reference slide_node = 1;
     required .TSP.IndexSet selected_paragraph_indexes = 2;
   }
+
   repeated .TSP.Reference slide_nodes = 1;
   optional .TSP.Reference slide_node_to_edit = 2;
   repeated .KN.SlideCollectionSelectionArchive.OutlineSelection selected_paragraph_indexes_for_slide_nodes = 3;
@@ -826,4 +832,3 @@ message MotionBackgroundFillArchive {
 extend .TSD.FillArchive {
   optional .KN.MotionBackgroundFillArchive motionBackgroundFill = 200;
 }
-

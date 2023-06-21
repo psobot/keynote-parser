@@ -442,4 +442,3 @@ message StyleDiffArchive {
   optional .TSWPSOS.ParagraphStylePropertyChangeSetArchive paragraph_change_set = 3;
   optional .TSWPSOS.ShapeStylePropertyChangeSetArchive shape_change_set = 4;
 }
-
