@@ -9,6 +9,7 @@ Example usage:
 Inspired by Sean Patrick O'Brien (@obriensp)'s 2013 "proto-dump": https://github.com/obriensp/proto-dump
 """
 
+import sys
 from pathlib import Path
 from tqdm import tqdm
 from typing import List
@@ -174,6 +175,8 @@ class ProtoFile(object):
         try:
             return self.pool.Add(self.file_descriptor_proto)
         except Exception as e:
+            if "duplicate file name" in str(e):
+                return self.pool.FindFileByName(e.args[0].split("duplicate file name")[1].strip())
             return None
 
     @property
@@ -321,11 +324,16 @@ def main():
         if not found.attempt_to_load():
             missing_deps.update(find_missing_dependencies(proto_files_found, found.path))
 
+    for found in proto_files_found:
+        if not found.attempt_to_load():
+            missing_deps.add(found)
+
     if missing_deps:
         print(
             f"Unable to print out all Protobuf definitions; {len(missing_deps):,} proto files could"
             f" not be found:\n{missing_deps}"
         )
+        sys.exit(1)
     else:
         for proto_file in tqdm(proto_files_found):
             Path(args.output_path).mkdir(parents=True, exist_ok=True)
