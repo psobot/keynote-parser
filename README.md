@@ -104,9 +104,6 @@ As new versions of Keynote are released, updates to `keynote-parser` can be made
 by running the following on a macOS machine with Keynote installed:
 
 ```shell
-# protobuf>=3.20.0rc1 must be installed, with the C++ runtime
-# on Intel, this can be done with "pip install 'protobuf>=3.20.0rc1'"
-# on Apple Silicon, this may require a manual build from source
 cd dumper
 make clean
 make
