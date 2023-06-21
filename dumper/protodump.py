@@ -137,7 +137,10 @@ def to_proto_file(fds: descriptor_pb2.FileDescriptorSet) -> str:
             if len(message.extension_range):
                 if len(message.extension_range) > 1:
                     raise NotImplementedError("Not sure how to handle multiple extension ranges!")
-                start, end = message.extension_range[0].start, message.extension_range[0].end
+                start, end = (
+                    message.extension_range[0].start,
+                    min(message.extension_range[0].end, 536870911)
+                )
                 lines.append(next_prefix + f"extensions {start} to {end};")
 
             generate_extension_lines(message, lines, indent + 1)

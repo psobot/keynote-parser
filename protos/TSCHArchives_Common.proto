@@ -107,42 +107,42 @@ message DEPRECATEDChart3DFillArchive {
 
 message ChartStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartNonStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message LegendStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message LegendNonStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartAxisStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartAxisNonStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartSeriesStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartSeriesNonStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message GridValue {
@@ -158,10 +158,10 @@ message GridRow {
 
 message ReferenceLineStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ReferenceLineNonStyleArchive {
   optional .TSS.StyleArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }

@@ -70,7 +70,7 @@ message ThemeArchive {
   repeated .TSP.UUID old_uuids_for_preset_replacements = 5;
   repeated .TSP.UUID new_uuids_for_preset_replacements = 6;
   repeated .TSP.Color color_presets = 10;
-  extensions 100 to 536870912;
+  extensions 100 to 536870911;
 }
 
 message ApplyThemeCommandArchive {

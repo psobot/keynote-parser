@@ -12,7 +12,7 @@ package TSCH;
 
 message ChartDrawableArchive {
   optional .TSD.DrawableArchive super = 1;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartArchive {
@@ -40,7 +40,7 @@ message ChartArchive {
   optional bool needs_calc_engine_deferred_import_action = 22;
   optional .TSP.Reference owned_preset = 23;
   optional bool is_dirty = 24;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
   extend .TSCH.ChartDrawableArchive {
     optional .TSCH.ChartArchive unity = 10000;
   }
@@ -152,7 +152,7 @@ message ChartStylePreset {
   repeated .TSP.Reference series_styles = 5;
   repeated .TSP.Reference paragraph_styles = 6;
   optional bytes uuid = 7;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartPresetsArchive {
@@ -175,7 +175,7 @@ message PropertyValueStorageContainerArchive {
   optional .TSP.SparseReferenceArray series_private_styles = 10;
   optional .TSP.SparseReferenceArray series_nonstyles = 11;
   optional .TSP.SparseReferenceArray paragraph_styles = 12;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message StylePasteboardDataArchive {
@@ -229,7 +229,7 @@ message ChartUIState {
   optional bool cde_use_full_keyboard = 6;
   optional int32 multi_data_set_index = 7;
   optional bool is_valid_multi_data_set_index = 8;
-  extensions 10000 to 536870912;
+  extensions 10000 to 536870911;
 }
 
 message ChartUIStateMultiDataIndexUpgrade {

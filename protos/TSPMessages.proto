@@ -197,7 +197,7 @@ message ObjectContainer {
 }
 
 message DataAttributes {
-  extensions 100 to 536870912;
+  extensions 100 to 536870911;
 }
 
 message LargeArraySegment {
