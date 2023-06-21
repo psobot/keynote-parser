@@ -1,8 +1,8 @@
 
 .PHONY=clean all
 
-LLDB_PYTHON_PATH := ${shell lldb --python-path}
-LLDB_PYTHON := ${shell lldb --python-path | cut -f 8 -d /}
+LLDB_PYTHON_PATH := /opt/homebrew/opt/llvm//libexec/python3.11/site-packages/ 
+LLDB_PYTHON := python3.11
 IDENTITY := $(shell security find-identity -v -p codesigning | head -n 1 | python -c 'import sys; print(sys.stdin.read().split("\"")[1])')
 
 all: mapping.py proto
