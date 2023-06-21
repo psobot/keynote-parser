@@ -19,7 +19,6 @@ enum ObjectPropertyType {
   kObjectPropertyTypeColor = 6;
   kObjectPropertyTypeShadow = 7;
 }
-
 message DummyCommandArchive {
   required uint32 foo = 1;
 }
@@ -401,15 +400,19 @@ message ContainedObjectsCommandArchive {
   message AddBehaviorArgs {
     repeated .TSK.AddIdOperationArgs args_list = 1;
   }
+
   message RemoveBehaviorArgs {
     repeated .TSK.RemoveIdOperationArgs args_list = 1;
   }
+
   message RearrangeBehaviorArgs {
     repeated .TSK.RearrangeIdOperationArgs args_list = 1;
   }
+
   required .TSK.CommandArchive super = 1;
   required .TSP.Reference target = 2;
   repeated .TSP.Reference objects = 3;
+  optional string container_name = 9;
   oneof undo_object {
     .TSP.Reference undo_object_for_commit = 4;
     .TSP.Reference undo_object_for_make_inverse = 5;
@@ -419,7 +422,6 @@ message ContainedObjectsCommandArchive {
     .TSWP.ContainedObjectsCommandArchive.RemoveBehaviorArgs remove_behavior_args = 7;
     .TSWP.ContainedObjectsCommandArchive.RearrangeBehaviorArgs rearrange_behavior_args = 8;
   }
-  optional string container_name = 9;
 }
 
 message EquationInfoGeometryCommandArchive {
@@ -442,4 +444,3 @@ message ParagraphStyleChangePropertyCommand_GArchive {
   repeated .TSWPSOS.ParagraphStylePropertyChangeSetArchive change_list = 4;
   optional bool change_list_undefined = 5;
 }
-

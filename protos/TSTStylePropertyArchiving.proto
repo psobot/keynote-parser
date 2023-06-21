@@ -150,4 +150,3 @@ message ThemePresetsArchive {
     optional .TST.ThemePresetsArchive extension = 200;
   }
 }
-

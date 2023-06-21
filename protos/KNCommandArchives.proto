@@ -17,7 +17,6 @@ enum AnimationReferent {
   kRelativeToStart = 1;
   kRelativeToEnd = 2;
 }
-
 message UIStateCommandGroupArchive {
   required .TSK.CommandGroupArchive super = 1;
   required .TSP.Reference uiState = 2;
@@ -158,6 +157,7 @@ message CommandShowSetValueArchive {
     optional .KN.ShowArchive.KNShowMode show_mode_value = 3;
     optional .TSP.Size size_value = 4;
   }
+
   required .TSK.CommandArchive super = 1;
   required .TSP.Reference show = 2;
   required string property = 3;
@@ -217,6 +217,7 @@ message CommandShowChangeThemeArchive {
   message IdentifierToStyleMap {
     repeated .TSS.StylesheetArchive.IdentifiedStyleEntry styles = 1;
   }
+
   required .TSK.CommandArchive super = 1;
   required .TSP.Reference show = 2;
   required .TSP.Reference theme = 3;
@@ -469,6 +470,7 @@ message CommandSoundtrackSetValue {
     optional .KN.Soundtrack.SoundtrackMode mode_value = 2;
     repeated .TSP.DataReference media_reference_values = 3;
   }
+
   required .TSK.CommandArchive super = 1;
   optional .TSP.UUID soundtrack_id = 2;
   optional string property = 3;
@@ -546,15 +548,6 @@ message CommandLiveVideoInfoSetSource {
 }
 
 message CommandLiveVideoInfoSetValue {
-  message PropertyValue {
-    optional double scale = 1;
-    optional .TSP.Point normalized_offset = 2;
-    optional int32 mask_kind = 3;
-    optional double mask_corner_radius = 4;
-    optional bool is_placeholder = 5;
-    optional int32 background_kind = 6;
-    optional .TSD.FillArchive background_fill = 7;
-  }
   enum Property {
     Scale = 0;
     NormalizedOffset = 1;
@@ -564,6 +557,16 @@ message CommandLiveVideoInfoSetValue {
     BackgroundKind = 5;
     BackgroundFill = 6;
   }
+  message PropertyValue {
+    optional double scale = 1;
+    optional .TSP.Point normalized_offset = 2;
+    optional int32 mask_kind = 3;
+    optional double mask_corner_radius = 4;
+    optional bool is_placeholder = 5;
+    optional int32 background_kind = 6;
+    optional .TSD.FillArchive background_fill = 7;
+  }
+
   required .TSK.CommandArchive super = 1;
   required .TSP.UUIDPath live_video_info_id_path = 2;
   required .KN.CommandLiveVideoInfoSetValue.Property property = 3;
@@ -572,14 +575,6 @@ message CommandLiveVideoInfoSetValue {
 }
 
 message CommandLiveVideoSourceSetValue {
-  message PropertyValue {
-    optional string name = 1;
-    optional .KN.LiveVideoCaptureDeviceDescription capture_device_description = 2;
-    optional .TSP.DataReference poster_image_data = 3;
-    optional string symbol_abbreviation_text = 4;
-    optional int32 symbol_image_identifier = 5;
-    optional int32 symbol_tint_color_identifier = 6;
-  }
   enum Property {
     SourceName = 0;
     CaptureDeviceDescription = 1;
@@ -588,6 +583,15 @@ message CommandLiveVideoSourceSetValue {
     SymbolImageIdentifier = 4;
     SymbolTintColorIdentifier = 5;
   }
+  message PropertyValue {
+    optional string name = 1;
+    optional .KN.LiveVideoCaptureDeviceDescription capture_device_description = 2;
+    optional .TSP.DataReference poster_image_data = 3;
+    optional string symbol_abbreviation_text = 4;
+    optional int32 symbol_image_identifier = 5;
+    optional int32 symbol_tint_color_identifier = 6;
+  }
+
   required .TSK.CommandArchive super = 1;
   required .TSP.UUID live_video_source_id = 2;
   required .KN.CommandLiveVideoSourceSetValue.Property property = 3;
@@ -628,4 +632,3 @@ message CommandMotionBackgroundStyleUpdatePosterFrameDataArchive {
   optional .TSP.DataReference poster_image_data = 3;
   optional .TSP.DataReference old_poster_image_data = 4;
 }
-
