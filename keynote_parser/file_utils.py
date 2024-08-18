@@ -205,7 +205,7 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
                 with open(replacement.replace, 'rb') as f:
                     read_image = Image.open(f)
                     with BytesIO() as output:
-                        read_image.thumbnail(image.size, Image.ANTIALIAS)
+                        read_image.thumbnail(image.size, Image.LANCZOS)
                         read_image.save(output, image.format)
                         sink(filename, output.getvalue())
                 file_has_changed = True
