@@ -1,3 +1,4 @@
+import importlib
 import struct
 import sys
 import traceback
@@ -10,10 +11,31 @@ from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.message import EncodeError
 
-from .generated.TSPArchiveMessages_pb2 import ArchiveInfo
-from .mapping import ID_NAME_MAP, NAME_CLASS_MAP
+from keynote_parser.versions import LATEST_VERSION as LATEST_VERSION_OBJECT
+
+LATEST_VERSION = LATEST_VERSION_OBJECT.short_version_string
 
 MAX_FLOAT = 340282346638528859811704183484516925440.000000000000000000
+
+
+def import_version(version: str = LATEST_VERSION):
+    try:
+        mapping = importlib.import_module(
+            f"keynote_parser.versions.v{version.replace('.', '_')}.mapping"
+        )
+    except ImportError:
+        raise KeyError(f"Mapping for version {version} not found.")
+    try:
+        tsp_archive_messages_pb2 = importlib.import_module(
+            f"keynote_parser.versions.v{version.replace('.', '_')}.generated.TSPArchiveMessages_pb2"
+        )
+    except ImportError:
+        raise KeyError(f"Archive for version {version} not found.")
+    return (
+        mapping.ID_NAME_MAP,
+        mapping.NAME_CLASS_MAP,
+        tsp_archive_messages_pb2.ArchiveInfo,
+    )
 
 
 class IWAFile(object):
@@ -136,7 +158,7 @@ class ProtobufPatch(object):
         return message_to_dict(self.data)
 
     @classmethod
-    def FromString(cls, message_info, proto_klass, data):
+    def FromString(cls, message_info, proto_klass, data, version: str = LATEST_VERSION):
         if len(message_info.diff_field_path.path) != 1:
             raise NotImplementedError(
                 "Not sure how to deserialize ProtobufPatch without exactly one diff_field_path. "
@@ -149,7 +171,9 @@ class ProtobufPatch(object):
             )
         for diff_path in message_info.diff_field_path.path:
             patched_field = proto_klass.DESCRIPTOR.fields_by_number[diff_path]
-            field_message_class = NAME_CLASS_MAP[patched_field.message_type.full_name]
+            field_message_class = import_version(version)[1][
+                patched_field.message_type.full_name
+            ]
             return cls(field_message_class.FromString(data))
 
     def SerializeToString(self):
@@ -172,8 +196,8 @@ class IWAArchiveSegment(object):
         )
 
     @classmethod
-    def from_buffer(cls, buf, filename=None):
-        archive_info, payload = get_archive_info_and_remainder(buf)
+    def from_buffer(cls, buf, filename=None, version: str = LATEST_VERSION):
+        archive_info, payload = get_archive_info_and_remainder(buf, version=version)
         if not repr(archive_info):
             raise ValueError("Segment doesn't seem to start with an ArchiveInfo!")
 
@@ -189,10 +213,10 @@ class IWAArchiveSegment(object):
                     klass = partial(
                         ProtobufPatch.FromString,
                         message_info,
-                        ID_NAME_MAP[base_message.type],
+                        import_version(version)[0][base_message.type],
                     )
                 else:
-                    klass = ID_NAME_MAP[message_info.type]
+                    klass = import_version(version)[0][message_info.type]
             except KeyError:
                 raise NotImplementedError(
                     "Don't know how to parse Protobuf message type "
@@ -215,7 +239,7 @@ class IWAArchiveSegment(object):
         return cls(archive_info, payloads), payload[n:]
 
     @classmethod
-    def from_dict(cls, _dict):
+    def from_dict(cls, _dict, version: str = LATEST_VERSION):
         header = dict_to_header(_dict["header"])
         objects = []
         for message_info, o in zip(header.message_infos, _dict["objects"]):
@@ -223,7 +247,7 @@ class IWAArchiveSegment(object):
                 base_message_info = header.message_infos[
                     message_info.base_message_index
                 ]
-                message_class = ID_NAME_MAP[base_message_info.type]
+                message_class = import_version(version)[0][base_message_info.type]
                 objects.append(ProtobufPatch(message_class, o))
             else:
                 objects.append(dict_to_message(o))
@@ -286,11 +310,13 @@ def _work_around_protobuf_max_float_handling(_dict):
     return _dict
 
 
-def dict_to_message(_dict):
+def dict_to_message(_dict, version: str = LATEST_VERSION):
     _type = _dict["_pbtype"]
     del _dict["_pbtype"]
     _dict = _work_around_protobuf_max_float_handling(_dict)
-    return ParseDict(_dict, NAME_CLASS_MAP[_type](), ignore_unknown_fields=True)
+    return ParseDict(
+        _dict, import_version(version)[1][_type](), ignore_unknown_fields=True
+    )
 
 
 def dict_to_header(_dict):
@@ -300,12 +326,12 @@ def dict_to_header(_dict):
     return dict_to_message(_dict)
 
 
-def get_archive_info_and_remainder(buf):
+def get_archive_info_and_remainder(buf, version: str = LATEST_VERSION):
     msg_len, new_pos = _DecodeVarint32(buf, 0)
     n = new_pos
     msg_buf = buf[n : n + msg_len]
     n += msg_len
-    return ArchiveInfo.FromString(msg_buf), buf[n:]
+    return import_version(version)[2].FromString(msg_buf), buf[n:]
 
 
 if __name__ == "__main__":

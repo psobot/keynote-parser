@@ -1,0 +1,57 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "keynote-parser"
+dynamic = ["version"]
+description = "A tool for manipulating Apple Keynote presentation files."
+readme = "README.md"
+license = { text = "MIT License" }
+authors = [{ name = "Peter Sobot", email = "github@petersobot.com" }]
+requires-python = ">=3.9"
+keywords = ["keynote", "macOS", "apple", "presentation", "powerpoint"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Software Development :: Build Tools",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+]
+dependencies = [
+    "protobuf>=3.13.0",
+    "tqdm>=4.14.0",
+    "python-snappy>=0.5.3",
+    "PyYAML>=5.3.1",
+    "Pillow>=7.1.0",
+    "future>=0.17.1",
+    "colorama>=0.4.3",
+]
+
+[project.optional-dependencies]
+dev = ["check-manifest"]
+test = ["coverage"]
+
+[project.scripts]
+keynote-parser = "keynote_parser.command_line:main"
+
+[project.urls]
+"Bug Reports" = "https://github.com/psobot/keynote-parser/issues"
+"Source" = "https://github.com/psobot/keynote-parser/"
+
+[tool.setuptools.dynamic]
+version = { attr = "keynote_parser.__version__" }
+
+[tool.setuptools.packages.find]
+exclude = ["contrib*", "docs*", "tests*", "protos*"]
+
+[tool.coverage.run]
+omit = ["keynote_parser/versions/*"]
+
+[tool.pytest.ini_options]
+addopts = "--cov=keynote_parser"

@@ -3,13 +3,12 @@
 
 __author__ = "Peter Sobot"
 
-import keynote_parser.macos_app_version
+from keynote_parser.versions import VERSIONS
 
 __major_version__ = 1
 __patch_version__ = 0
-__supported_keynote_version__ = keynote_parser.macos_app_version.MacOSAppVersion(
-    "14.4", "7043.0.93", "1A89s"
-)
+
+__supported_keynote_version__ = max(VERSIONS)
 __version_tuple__ = (
     __major_version__,
     __supported_keynote_version__.major,

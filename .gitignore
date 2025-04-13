@@ -4,7 +4,7 @@
 __pycache__/
 *.py[cod]
 *$py.class
-keynote_parser/generated/
+keynote_parser/versions/v*/generated/
 
 # C extensions
 *.so
@@ -116,3 +116,5 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+
+uv.lock

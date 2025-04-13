@@ -16,7 +16,7 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.9", "3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
     - uses: actions/checkout@v2
     - name: Set up Python ${{ matrix.python-version }}
@@ -32,13 +32,13 @@ jobs:
         echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         python -m pip install --upgrade pip
-        pip install ruff pytest
+        pip install ruff pytest rich 'protobuf>=3.20.0rc1,<4'
         pip install -r requirements.txt
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-    - name: Build package
-      run: make
+    - name: Build gencode
+      run: PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
     - name: Lint with ruff
-      run: ruff check . --exclude keynote_parser/generated
+      run: ruff check .
     - name: Test with pytest
-      run: PYTHONPATH=$PYTHONPATH:$(pwd) pytest --cov=keynote_parser
+      run: PYTHONPATH=$PYTHONPATH:$(pwd) pytest

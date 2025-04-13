@@ -14,6 +14,7 @@ Example usage:
 Inspired by Sean Patrick O'Brien (@obriensp)'s 2013 "proto-dump": https://github.com/obriensp/proto-dump
 """
 
+import logging
 from collections import defaultdict
 from pathlib import Path
 from typing import List
@@ -22,7 +23,6 @@ from google.protobuf import descriptor_pb2
 from google.protobuf.descriptor_pool import DescriptorPool
 from google.protobuf.internal.decoder import SkipField, _DecodeVarint
 from google.protobuf.message import DecodeError
-from rich import print
 from rich.progress import track
 
 PROTO_TYPES = {
@@ -319,14 +319,19 @@ def main():
     )
 
     args = parser.parse_args()
+
+    extract_proto_files(args.input_path, args.output_path)
+
+
+def extract_proto_files(input_path: str, output_path: str):
     GLOBAL_DESCRIPTOR_POOL = DescriptorPool()
 
     all_filenames = [
-        str(path) for path in Path(args.input_path).rglob("*") if not path.is_dir()
+        str(path) for path in Path(input_path).rglob("*") if not path.is_dir()
     ]
 
-    print(
-        f"Scanning {len(all_filenames):,} files under {args.input_path} for protobuf definitions..."
+    logging.info(
+        f"Scanning {len(all_filenames):,} files under {input_path} for protobuf definitions..."
     )
 
     proto_files_found = set()
@@ -334,7 +339,9 @@ def main():
         for proto in extract_proto_from_file(path, GLOBAL_DESCRIPTOR_POOL):
             proto_files_found.add(proto)
 
-    print(f"Found what look like {len(proto_files_found):,} protobuf definitions.")
+    logging.info(
+        f"Found what look like {len(proto_files_found):,} protobuf definitions."
+    )
 
     missing_deps = set()
     for found in proto_files_found:
@@ -350,28 +357,28 @@ def main():
     if missing_deps:
         missing_deps = sorted(missing_deps, key=str)
         if not proto_files_found:
-            print(
+            logging.error(
                 f"All {len(missing_deps):,} proto files could not be found:\n"
                 + "\n".join(f"\t{d}" for d in missing_deps)
             )
         else:
             all_possible = set(proto_files_found) | set(missing_deps)
-            print(
+            logging.error(
                 f"Unable to print out {len(missing_deps):,} of {len(all_possible):,} "
                 f"Protobuf definitions:\n" + "\n".join(f"\t{d}" for d in missing_deps)
             )
         raise SystemExit(1)
     else:
         for proto_file in track(proto_files_found):
-            Path(args.output_path).mkdir(parents=True, exist_ok=True)
-            with open(Path(args.output_path) / proto_file.path, "w") as f:
+            Path(output_path).mkdir(parents=True, exist_ok=True)
+            with open(Path(output_path) / proto_file.path, "w") as f:
                 source = proto_file.source
                 if source:
                     f.write(source)
                 else:
-                    print(f"Warning: no source available for {proto_file}")
-        print(
-            f"Done! Wrote {len(proto_files_found):,} proto files to {args.output_path}."
+                    logging.error(f"Warning: no source available for {proto_file}")
+        logging.info(
+            f"Done! Wrote {len(proto_files_found):,} proto files to {output_path}."
         )
 
 

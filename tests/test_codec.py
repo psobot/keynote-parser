@@ -1,17 +1,18 @@
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
+    from yaml import Dumper, Loader
 
-import yaml
 import pytest
+import yaml
+from google.protobuf.json_format import MessageToDict, ParseDict
+
 from keynote_parser import codec
 from keynote_parser.unicode_utils import fix_unicode
-from keynote_parser.generated.TSCHArchives_GEN_pb2 import (
+from keynote_parser.versions.v14_4.generated.TSCHArchives_GEN_pb2 import (
     ChartSeriesStyleArchive as Archive,
 )
-
-from google.protobuf.json_format import MessageToDict, ParseDict
 
 SIMPLE_FILENAME = "./tests/data/simple-oneslide.iwa"
 MULTILINE_FILENAME = "./tests/data/multiline-oneslide.iwa"

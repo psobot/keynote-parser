@@ -1,3 +1,4 @@
+import argparse
 import glob
 import json
 import os
@@ -23,46 +24,65 @@ NAME_CLASS_MAP, ID_NAME_MAP = compute_maps()
 """
 
 
-def main():
-    output_filename = "mapping.py"
-    mapping_filename = "mapping.json"
+def generate_mapping(mapping: dict[int, str], proto_dir: str) -> str:
+    lines = []
+    lines.append(f"# Generated code! Edit {__file__} instead.")
+    lines.append("")
 
-    with open(output_filename, "w") as f:
-        f.write(f"# Generated code! Edit {__file__} instead.\n")
-        f.write("\n")
+    lines.append("from __future__ import absolute_import")
 
-        f.write("from __future__ import absolute_import\n")
-        f.write("\n")
+    proto_files = sorted(
+        [
+            os.path.basename(path)
+            for path in glob.glob(os.path.join(proto_dir, "*.proto"))
+        ]
+    )
 
-        proto_files = sorted(
+    proto_identifiers = sorted(
+        set(
             [
-                os.path.basename(path)
-                for path in glob.glob(os.path.join("..", "protos", "*.proto"))
+                proto_file.replace(".proto", "").replace(".", "_")
+                for proto_file in proto_files
             ]
         )
+    )
 
-        for proto_file in proto_files:
-            f.write(
-                f"from .generated import {proto_file.replace('.proto', '')}_pb2 as"
-                f" {proto_file.replace('.proto', '')}\n"
-            )
+    for identifier in proto_identifiers:
+        lines.append(f"from .generated import {identifier}_pb2 as {identifier}")
 
-        f.write("\n\n")
+    lines.append("\n")
 
-        f.write("PROTO_FILES = [\n")
-        for proto_file in proto_files:
-            f.write(f"\t{proto_file.replace('.proto', '')},\n")
-        f.write("]\n")
-        f.write("\n")
+    lines.append("PROTO_FILES = [")
+    for identifier in proto_identifiers:
+        lines.append(f"\t{identifier},")
+    lines.append("]")
+    lines.append("")
 
-        with open(mapping_filename) as mapping_file:
-            mapping_file_contents = mapping_file.read()
-            if mapping_file_contents == "":
-                raise ValueError(f"Mapping file {mapping_filename} is empty.")
-            mapping_file_contents = json.loads(mapping_file_contents)
-            f.write(f"TSPRegistryMapping = {repr(mapping_file_contents)}\n")
+    lines.append(f"TSPRegistryMapping = {repr(mapping)}")
 
-        f.write(RUNTIME_CODE)
+    lines.append(RUNTIME_CODE)
+
+    return "\n".join(lines)
+
+
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("mapping_filename", type=str, help="Path to the mapping file.")
+    parser.add_argument(
+        "proto_dir",
+        type=str,
+        help="Path to a directory containing proto files referenced by the mapping.",
+    )
+    parser.add_argument(
+        "output_filename",
+        type=str,
+        help="Path to the output file to write to. Will be overwritten.",
+    )
+    args = parser.parse_args()
+
+    mapping = json.load(open(args.mapping_filename))
+    with open(args.output_filename, "w") as f:
+        f.write(generate_mapping(mapping, args.proto_dir))
 
 
 if __name__ == "__main__":
