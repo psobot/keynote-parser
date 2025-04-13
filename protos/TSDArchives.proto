@@ -239,12 +239,12 @@ message DropShadowArchive {
 }
 
 message ContactShadowArchive {
-  optional float height = 2 [default = 0.200000003];
+  optional float height = 2 [default = 0.2];
   optional float offset = 4 [default = 0];
 }
 
 message CurvedShadowArchive {
-  optional float curve = 1 [default = 0.600000024];
+  optional float curve = 1 [default = 0.6];
 }
 
 message ReflectionArchive {

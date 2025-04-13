@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "TSPMessages.proto";
 import "TSKArchives.proto";
+import "TSCKArchives.proto";
 import "TSDArchives.proto";
 import "TSSArchives.proto";
 import "TSCHArchives_Common.proto";
@@ -286,15 +287,34 @@ message CollaboratorCDECursorSubselectionArchive {
   optional int32 row_length = 2;
   optional int32 column_location = 3;
   optional int32 column_length = 4;
-  extend .TSK.CollaboratorCursorArchive {
+  extend .TSCK.CollaboratorCursorArchive {
     optional .TSCH.CollaboratorCDECursorSubselectionArchive cde_cursor_subselection = 300;
   }
 }
 
 message CollaboratorChartTitleCursorSubselectionArchive {
   optional bool chart_title_selected = 1;
-  extend .TSK.CollaboratorCursorArchive {
+  extend .TSCK.CollaboratorCursorArchive {
     optional .TSCH.CollaboratorChartTitleCursorSubselectionArchive chart_title_cursor_subselection = 301;
+  }
+}
+
+message CachedAxisDataFormatterPersistableStyleObject {
+  optional .TSCH.ChartAxisIDArchive axis_id = 1;
+  optional .TSK.FormatStructArchive style_object = 2;
+}
+
+message CachedSeriesDataFormatterPersistableStyleObject {
+  optional int32 series_index = 1;
+  optional .TSK.FormatStructArchive style_object = 2;
+}
+
+message CachedDataFormatterPersistableStyleObjects {
+  repeated .TSCH.CachedAxisDataFormatterPersistableStyleObject axis_data_formatter_list = 1;
+  repeated .TSCH.CachedSeriesDataFormatterPersistableStyleObject series_data_formatter_list = 2;
+  optional .TSK.FormatStructArchive summary_label_style_object = 3;
+  extend .TSCH.ChartArchive {
+    optional .TSCH.CachedDataFormatterPersistableStyleObjects cached_data_formatter_persistable_style_objects = 10030;
   }
 }
 
