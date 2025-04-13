@@ -1,6 +1,6 @@
 # keynote-parser
 
-<a href="https://travis-ci.org/psobot/keynote-parser"><img src="https://travis-ci.com/psobot/keynote-parser.svg?branch=master" alt="build:" /></a>
+[![PyTest & Ruff](https://github.com/psobot/keynote-parser/actions/workflows/python-package.yml/badge.svg?branch=master)](https://github.com/psobot/keynote-parser/actions/workflows/python-package.yml)
 
 `keynote-parser` is a Python module for unpacking and re-packing
 [Apple Keynote](https://www.apple.com/keynote/) `.key` files. It supports Keynote
