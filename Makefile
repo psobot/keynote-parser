@@ -19,8 +19,7 @@ keynote_parser/generated/%_pb2.py: protos/%.proto keynote_parser/generated
 
 keynote_parser/generated/__init__.py: keynote_parser/generated $(PROTO_CLASSES)
 	touch $@
-	# Huge hack for py3 support, see https://github.com/protocolbuffers/protobuf/issues/1491
-	futurize --no-diffs --nobackups --both-stages --processes 4 -w keynote_parser/generated/
+	python3 dumper/rewrite_imports.py keynote_parser/generated/*.py
 
 clean:
 	rm -rf keynote_parser/generated

@@ -249,7 +249,7 @@ def extract_proto_from_file(filename, descriptor_pool):
 
         try:
             name_length, new_pos = _DecodeVarint(data, marker_start)
-        except Exception as e:
+        except Exception:
             # Expected a VarInt here, so if not, continue
             offset = suffix_position + len(PROTO_MARKER)
             continue
@@ -279,7 +279,7 @@ def extract_proto_from_file(filename, descriptor_pool):
                 and proto_file.path != "google/protobuf/descriptor.proto"
             ):
                 yield proto_file
-        except Exception as e:
+        except Exception:
             pass
 
         offset = marker_start + descriptor_length

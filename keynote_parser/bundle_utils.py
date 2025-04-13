@@ -1,20 +1,22 @@
+import inspect
 import os
-import sys
-import warnings
 import plistlib
+import sys
 import urllib.parse
-from colorama import init as colorama_init
+import warnings
+
 from colorama import Fore
+from colorama import init as colorama_init
+
 from keynote_parser import (
-    __version__,
-    __supported_keynote_version__,
     __new_issue_url__,
-    __command_line_invocation__,
+    __supported_keynote_version__,
+    __version__,
 )
 from keynote_parser.macos_app_version import MacOSAppVersion
 
-DEFAULT_KEYNOTE_INSTALL_PATH = '/Applications/Keynote.app'
-VERSION_PLIST_PATH = 'Contents/version.plist'
+DEFAULT_KEYNOTE_INSTALL_PATH = "/Applications/Keynote.app"
+VERSION_PLIST_PATH = "Contents/version.plist"
 
 
 colorama_init()
@@ -22,21 +24,23 @@ colorama_init()
 
 def get_installed_keynote_version():
     try:
-        fp = open(os.path.join(DEFAULT_KEYNOTE_INSTALL_PATH, VERSION_PLIST_PATH), 'rb')
+        fp = open(os.path.join(DEFAULT_KEYNOTE_INSTALL_PATH, VERSION_PLIST_PATH), "rb")
     except IOError:
         return None
     version_dict = plistlib.load(fp)
     return MacOSAppVersion(
-        version_dict['CFBundleShortVersionString'],
-        version_dict['CFBundleVersion'],
-        version_dict['ProductBuildVersion'],
+        version_dict["CFBundleShortVersionString"],
+        version_dict["CFBundleVersion"],
+        version_dict["ProductBuildVersion"],
     )
 
 
 class KeynoteVersionWarning(UserWarning):
     def __init__(self, installed_keynote_version):
         issue_title = "Please add support for Keynote %s" % installed_keynote_version
-        new_issue_url = __new_issue_url__ + "?" + urllib.parse.urlencode({"title": issue_title})
+        new_issue_url = (
+            __new_issue_url__ + "?" + urllib.parse.urlencode({"title": issue_title})
+        )
         super(UserWarning, self).__init__(
             (
                 "KeynoteVersionWarning: "
@@ -97,7 +101,9 @@ def warn_once_on_newer_keynote(installed_keynote_version=None):
     if DID_WARN:
         return False
 
-    installed_keynote_version = installed_keynote_version or get_installed_keynote_version()
+    installed_keynote_version = (
+        installed_keynote_version or get_installed_keynote_version()
+    )
     if not installed_keynote_version:
         return False
 
@@ -113,5 +119,9 @@ def warn_once_on_newer_keynote(installed_keynote_version=None):
     return DID_WARN
 
 
-if not __command_line_invocation__ and "pytest" not in sys.modules:
+IS_INVOKED_ON_COMMAND_LINE = any(
+    frame.function == "__main__" for frame in inspect.stack()
+)
+
+if not IS_INVOKED_ON_COMMAND_LINE and "pytest" not in sys.modules:
     warn_once_on_newer_keynote()

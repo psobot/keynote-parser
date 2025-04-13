@@ -1,26 +1,17 @@
-from __future__ import print_function
-from __future__ import absolute_import
-from builtins import zip
-from builtins import str
-from builtins import object
-from future.utils import raise_from
-
-import sys
-import yaml
 import struct
-import snappy
+import sys
 import traceback
 from functools import partial
 
-from .mapping import NAME_CLASS_MAP, ID_NAME_MAP
-
-from google.protobuf.internal.encoder import _VarintBytes
+import snappy
+import yaml
 from google.protobuf.internal.decoder import _DecodeVarint32
+from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.message import EncodeError
 
 from .generated.TSPArchiveMessages_pb2 import ArchiveInfo
-
+from .mapping import ID_NAME_MAP, NAME_CLASS_MAP
 
 MAX_FLOAT = 340282346638528859811704183484516925440.000000000000000000
 
@@ -46,25 +37,25 @@ class IWAFile(object):
             return cls(chunks, filename)
         except Exception as e:
             if filename:
-                raise_from(ValueError("Failed to deserialize " + filename), e)
+                raise ValueError("Failed to deserialize " + filename) from e
             else:
                 raise
 
     @classmethod
     def from_dict(cls, _dict):
-        return cls([IWACompressedChunk.from_dict(chunk) for chunk in _dict['chunks']])
+        return cls([IWACompressedChunk.from_dict(chunk) for chunk in _dict["chunks"]])
 
     def to_dict(self):
         try:
             return {"chunks": [chunk.to_dict() for chunk in self.chunks]}
         except Exception as e:
             if self.filename:
-                raise_from(ValueError("Failed to serialize " + self.filename), e)
+                raise ValueError("Failed to serialize " + self.filename) from e
             else:
                 raise
 
     def to_buffer(self):
-        return b''.join([chunk.to_buffer() for chunk in self.chunks])
+        return b"".join([chunk.to_buffer() for chunk in self.chunks])
 
 
 class IWACompressedChunk(object):
@@ -84,9 +75,11 @@ class IWACompressedChunk(object):
                 first_byte = ord(first_byte)
 
             if first_byte != 0x00:
-                raise ValueError("IWA chunk does not start with 0x00! (found %x)" % first_byte)
+                raise ValueError(
+                    "IWA chunk does not start with 0x00! (found %x)" % first_byte
+                )
 
-            unpacked = struct.unpack_from('<I', bytes(header[1:]) + b'\x00')
+            unpacked = struct.unpack_from("<I", bytes(header[1:]) + b"\x00")
             length = unpacked[0]
             chunk = data[4 : 4 + length]
             data = data[4 + length :]
@@ -101,7 +94,7 @@ class IWACompressedChunk(object):
 
     @classmethod
     def from_buffer(cls, data, filename=None):
-        data = b''.join(cls._decompress_all(data))
+        data = b"".join(cls._decompress_all(data))
         archives = []
         while data:
             archive, data = IWAArchiveSegment.from_buffer(data, filename)
@@ -110,19 +103,22 @@ class IWACompressedChunk(object):
 
     @classmethod
     def from_dict(cls, _dict):
-        return cls([IWAArchiveSegment.from_dict(d) for d in _dict['archives']])
+        return cls([IWAArchiveSegment.from_dict(d) for d in _dict["archives"]])
 
     def to_dict(self):
         return {"archives": [archive.to_dict() for archive in self.archives]}
 
     def to_buffer(self):
-        uncompressed = b''.join([archive.to_buffer() for archive in self.archives])
+        uncompressed = b"".join([archive.to_buffer() for archive in self.archives])
         payloads = []
         while uncompressed:
             payloads.append(snappy.compress(uncompressed[:65536]))
             uncompressed = uncompressed[65536:]
-        return b''.join(
-            [b'\x00' + struct.pack('<I', len(payload))[:3] + payload for payload in payloads]
+        return b"".join(
+            [
+                b"\x00" + struct.pack("<I", len(payload))[:3] + payload
+                for payload in payloads
+            ]
         )
 
 
@@ -187,19 +183,24 @@ class IWAArchiveSegment(object):
         for message_info in archive_info.message_infos:
             try:
                 if message_info.type == 0 and archive_info.should_merge and payloads:
-                    base_message = archive_info.message_infos[message_info.base_message_index]
+                    base_message = archive_info.message_infos[
+                        message_info.base_message_index
+                    ]
                     klass = partial(
-                        ProtobufPatch.FromString, message_info, ID_NAME_MAP[base_message.type]
+                        ProtobufPatch.FromString,
+                        message_info,
+                        ID_NAME_MAP[base_message.type],
                     )
                 else:
                     klass = ID_NAME_MAP[message_info.type]
             except KeyError:
                 raise NotImplementedError(
-                    "Don't know how to parse Protobuf message type " + str(message_info.type)
+                    "Don't know how to parse Protobuf message type "
+                    + str(message_info.type)
                 )
             try:
                 message_payload = payload[n : n + message_info.length]
-                if hasattr(klass, 'FromString'):
+                if hasattr(klass, "FromString"):
                     output = klass.FromString(message_payload)
                 else:
                     output = klass(message_payload)
@@ -215,11 +216,13 @@ class IWAArchiveSegment(object):
 
     @classmethod
     def from_dict(cls, _dict):
-        header = dict_to_header(_dict['header'])
+        header = dict_to_header(_dict["header"])
         objects = []
-        for message_info, o in zip(header.message_infos, _dict['objects']):
-            if message_info.diff_field_path and '_pbtype' not in o:
-                base_message_info = header.message_infos[message_info.base_message_index]
+        for message_info, o in zip(header.message_infos, _dict["objects"]):
+            if message_info.diff_field_path and "_pbtype" not in o:
+                base_message_info = header.message_infos[
+                    message_info.base_message_index
+                ]
                 message_class = ID_NAME_MAP[base_message_info.type]
                 objects.append(ProtobufPatch(message_class, o))
             else:
@@ -246,24 +249,24 @@ class IWAArchiveSegment(object):
                     "Failed to encode object: %s\nObject: '%s'\nMessage info: %s"
                     % (e, repr(obj), message_info)
                 )
-        return b''.join(
+        return b"".join(
             [_VarintBytes(self.header.ByteSize()), self.header.SerializeToString()]
             + [obj.SerializeToString() for obj in self.objects]
         )
 
 
 def message_to_dict(message):
-    if hasattr(message, 'to_dict'):
+    if hasattr(message, "to_dict"):
         return message.to_dict()
     output = MessageToDict(message)
-    output['_pbtype'] = type(message).DESCRIPTOR.full_name
+    output["_pbtype"] = type(message).DESCRIPTOR.full_name
     return output
 
 
 def header_to_dict(message):
     output = message_to_dict(message)
-    for message_info in output['messageInfos']:
-        del message_info['length']
+    for message_info in output["messageInfos"]:
+        del message_info["length"]
     return output
 
 
@@ -284,16 +287,16 @@ def _work_around_protobuf_max_float_handling(_dict):
 
 
 def dict_to_message(_dict):
-    _type = _dict['_pbtype']
-    del _dict['_pbtype']
+    _type = _dict["_pbtype"]
+    del _dict["_pbtype"]
     _dict = _work_around_protobuf_max_float_handling(_dict)
     return ParseDict(_dict, NAME_CLASS_MAP[_type](), ignore_unknown_fields=True)
 
 
 def dict_to_header(_dict):
-    for message_info in _dict['messageInfos']:
+    for message_info in _dict["messageInfos"]:
         # set a dummy length value that we'll overwrite later
-        message_info['length'] = 0
+        message_info["length"] = 0
     return dict_to_message(_dict)
 
 

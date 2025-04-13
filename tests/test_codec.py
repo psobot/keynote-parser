@@ -7,24 +7,26 @@ import yaml
 import pytest
 from keynote_parser import codec
 from keynote_parser.unicode_utils import fix_unicode
-from keynote_parser.generated.TSCHArchives_GEN_pb2 import ChartSeriesStyleArchive as Archive
+from keynote_parser.generated.TSCHArchives_GEN_pb2 import (
+    ChartSeriesStyleArchive as Archive,
+)
 
 from google.protobuf.json_format import MessageToDict, ParseDict
 
-SIMPLE_FILENAME = './tests/data/simple-oneslide.iwa'
-MULTILINE_FILENAME = './tests/data/multiline-oneslide.iwa'
-MULTICHUNK_FILENAME = './tests/data/multi-chunk.iwa'
-EMOJI_FILENAME = './tests/data/emoji-oneslide.iwa'
-MESSAGE_TYPE_ZERO_FILENAME = './tests/data/message-type-zero.iwa'
-EMOJI_FILENAME_PY2_YAML = './tests/data/emoji-oneslide.py2.yaml'
-EMOJI_FILENAME_PY3_YAML = './tests/data/emoji-oneslide.py3.yaml'
-VERY_BIG_SLIDE = './tests/data/very-big-slide.iwa'
+SIMPLE_FILENAME = "./tests/data/simple-oneslide.iwa"
+MULTILINE_FILENAME = "./tests/data/multiline-oneslide.iwa"
+MULTICHUNK_FILENAME = "./tests/data/multi-chunk.iwa"
+EMOJI_FILENAME = "./tests/data/emoji-oneslide.iwa"
+MESSAGE_TYPE_ZERO_FILENAME = "./tests/data/message-type-zero.iwa"
+EMOJI_FILENAME_PY2_YAML = "./tests/data/emoji-oneslide.py2.yaml"
+EMOJI_FILENAME_PY3_YAML = "./tests/data/emoji-oneslide.py3.yaml"
+VERY_BIG_SLIDE = "./tests/data/very-big-slide.iwa"
 MAX_FLOAT = 340282346638528859811704183484516925440.0000000000000000000000
 TOO_BIG_FLOAT = 3.4028235e38
 
 
 def roundtrip(filename):
-    with open(filename, 'rb') as f:
+    with open(filename, "rb") as f:
         test_data = f.read()
     file = codec.IWAFile.from_buffer(test_data, filename)
     roundtrip_iwa_file(file, test_data)
@@ -34,7 +36,9 @@ def roundtrip_iwa_file(file, binary):
     assert file is not None
     for chunk in file.chunks:
         for archive in chunk.archives:
-            assert codec.IWAArchiveSegment.from_buffer(archive.to_buffer())[0] == archive
+            assert (
+                codec.IWAArchiveSegment.from_buffer(archive.to_buffer())[0] == archive
+            )
         assert codec.IWACompressedChunk.from_buffer(chunk.to_buffer())[0] == chunk
     assert codec.IWAFile.from_buffer(file.to_buffer()).to_dict() == file.to_dict()
 
@@ -56,23 +60,29 @@ def test_iwa_message_type_zero_roundtrip():
 
 
 def test_yaml_parse_py2_emoji():
-    with open(EMOJI_FILENAME_PY2_YAML, 'rb') as handle:
-        file = codec.IWAFile.from_dict(yaml.safe_load(fix_unicode(handle.read().decode('utf-8'))))
+    with open(EMOJI_FILENAME_PY2_YAML, "rb") as handle:
+        file = codec.IWAFile.from_dict(
+            yaml.safe_load(fix_unicode(handle.read().decode("utf-8")))
+        )
         assert file is not None
 
 
 def test_yaml_parse_py3_emoji():
-    with open(EMOJI_FILENAME_PY3_YAML, 'rb') as handle:
-        file = codec.IWAFile.from_dict(yaml.safe_load(fix_unicode(handle.read().decode('utf-8'))))
+    with open(EMOJI_FILENAME_PY3_YAML, "rb") as handle:
+        file = codec.IWAFile.from_dict(
+            yaml.safe_load(fix_unicode(handle.read().decode("utf-8")))
+        )
         assert file is not None
 
 
 def test_iwa_multichunk_roundtrip():
-    with open(MULTICHUNK_FILENAME, 'rb') as f:
+    with open(MULTICHUNK_FILENAME, "rb") as f:
         test_data = f.read()
     file = codec.IWAFile.from_buffer(test_data, MULTICHUNK_FILENAME)
     assert file is not None
-    rt_as_dict = codec.IWAFile.from_buffer(file.to_buffer(), MULTICHUNK_FILENAME).to_dict()
+    rt_as_dict = codec.IWAFile.from_buffer(
+        file.to_buffer(), MULTICHUNK_FILENAME
+    ).to_dict()
     assert rt_as_dict == file.to_dict()
 
 
@@ -80,7 +90,7 @@ def test_roundtrip_very_big():
     roundtrip(VERY_BIG_SLIDE)
 
 
-@pytest.mark.parametrize('big_float', (MAX_FLOAT, TOO_BIG_FLOAT))
+@pytest.mark.parametrize("big_float", (MAX_FLOAT, TOO_BIG_FLOAT))
 def test_too_big_float_deserialization(big_float):
     test_archive = Archive(tschchartseriesareasymbolsize=big_float)
     test_archive_as_dict = MessageToDict(test_archive)

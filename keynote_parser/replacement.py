@@ -8,17 +8,22 @@ def parse_json(json_path):
     replacements = []
     with open(json_path) as f:
         data = json.load(f)
-        for replacement_dict in data['replacements']:
+        for replacement_dict in data["replacements"]:
             try:
-                replacements.append(Replacement(**{
-                    x: replacement_dict[x]
-                    for x in ('find', 'replace', 'key_path')
-                    if x in replacement_dict
-                }))
+                replacements.append(
+                    Replacement(
+                        **{
+                            x: replacement_dict[x]
+                            for x in ("find", "replace", "key_path")
+                            if x in replacement_dict
+                        }
+                    )
+                )
             except Exception as e:
                 raise ValueError(
-                    "Failed to parse %s (data: '%s'): %s" % (
-                        json_path, replacement_dict, e))
+                    "Failed to parse %s (data: '%s'): %s"
+                    % (json_path, replacement_dict, e)
+                )
     return replacements
 
 
@@ -35,7 +40,7 @@ class Replacement(object):
         self.find = find
         self.replace = replace
         if not isinstance(key_path, list):
-            self.key_path = key_path.split('.')
+            self.key_path = key_path.split(".")
         else:
             self.key_path = key_path
 
@@ -53,24 +58,24 @@ class Replacement(object):
         might point beyond the end of the text, which causes Keynote to make
         the text box 2^16 points tall, eventually forcing it to crash.
         """
-        text = _dict['text'][0]
+        text = _dict["text"][0]
 
         new_offsets = [0]
 
         surrogate_pair_correction = 0
         for i, c in enumerate(text):
-            if c == '\n':
+            if c == "\n":
                 new_offsets.append(i + 1 + surrogate_pair_correction)
             if ord(c) > 0xFFFF:
                 surrogate_pair_correction += 1
 
-        entries = _dict['tableParaStyle']['entries']
+        entries = _dict["tableParaStyle"]["entries"]
         if len(entries) != len(new_offsets):
             raise NotImplementedError(
-                "New line count doesn't match old line count in data: %s",
-                text)
+                "New line count doesn't match old line count in data: %s", text
+            )
         for para_entry, offset in zip(entries, new_offsets):
-            para_entry['characterIndex'] = offset
+            para_entry["characterIndex"] = offset
         return _dict
 
     def correct_charstyle_replacement(self, data, key_path, depth, on_replace):
@@ -85,18 +90,17 @@ class Replacement(object):
         replaced spans multiple style blocks.
         """
         new_start = 0
-        text = data['text'][0]
-        if 'tableCharStyle' not in data \
-                or len(data['tableCharStyle']['entries']) == 1:
+        text = data["text"][0]
+        if "tableCharStyle" not in data or len(data["tableCharStyle"]["entries"]) == 1:
             old_value = data[key_path[0]]
             new_value = self.perform_on(old_value, depth + 1, on_replace)
             return merge_two_dicts(data, {key_path[0]: new_value})
-        char_style_entries = data['tableCharStyle']['entries']
+        char_style_entries = data["tableCharStyle"]["entries"]
         parts = []
         new_indices = []
         for start, end in zip(char_style_entries, char_style_entries[1:]):
-            start_index = start['characterIndex']
-            end_index = end['characterIndex']
+            start_index = start["characterIndex"]
+            end_index = end["characterIndex"]
             chunk = text[start_index:end_index]
             chunk = re.sub(self.find, self.replace, chunk)
             parts.append(chunk)
@@ -104,10 +108,10 @@ class Replacement(object):
             new_indices.append(new_start)
             new_start = new_end
         new_indices.append(new_indices[-1] + len(parts[-1]))
-        parts.append(text[char_style_entries[-1]['characterIndex']:])
-        data['text'][0] = ''.join(parts)
+        parts.append(text[char_style_entries[-1]["characterIndex"] :])
+        data["text"][0] = "".join(parts)
         for new_start, entry in zip(new_indices, char_style_entries):
-            entry['characterIndex'] = new_start
+            entry["characterIndex"] = new_start
         return data
 
     def perform_on(self, data, depth=0, on_replace=None):
@@ -118,14 +122,12 @@ class Replacement(object):
                 on_replace(self, data, new_value)
             return new_value
         if key_path[0] == "[]":
-            return [
-                self.perform_on(obj, depth + 1, on_replace)
-                for obj in data
-            ]
+            return [self.perform_on(obj, depth + 1, on_replace) for obj in data]
         if key_path[0] in data:
-            if key_path[0] == 'text':
+            if key_path[0] == "text":
                 output = self.correct_charstyle_replacement(
-                    data, key_path, depth, on_replace)
+                    data, key_path, depth, on_replace
+                )
                 output = self.correct_multiline_replacement(output)
             else:
                 old_value = data[key_path[0]]
@@ -140,9 +142,6 @@ class Replacement(object):
         if not key_path:
             return re.search(self.find, data) is not None
         elif key_path[0] == "[]":
-            return any([
-                self.should_replace(obj, depth + 1) for obj in data
-            ])
+            return any([self.should_replace(obj, depth + 1) for obj in data])
         elif hasattr(data, key_path[0]):
-            return self.should_replace(
-                getattr(data, key_path[0]), depth + 1)
+            return self.should_replace(getattr(data, key_path[0]), depth + 1)
