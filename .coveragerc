@@ -1,8 +1,0 @@
-[run]
-disable_warnings =
-  DeprecationWarning
-
-[report]
-
-omit =
-  keynote_parser/generated/*

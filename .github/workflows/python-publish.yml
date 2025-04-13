@@ -28,12 +28,15 @@ jobs:
         sudo apt-get install -qq libsnappy-dev
         pip install -r requirements.txt
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine
+        pip install setuptools wheel twine build rich 'protobuf>=3.20.0rc1,<4'
     - name: Build and publish
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
-        make
-        python setup.py sdist bdist_wheel
+        # Build the gencode:
+        PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
+        # Build the package:
+        python -m build
+        # Upload the package:
         twine upload dist/*

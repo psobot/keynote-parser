@@ -11,10 +11,10 @@ Copyright 2020 Peter Sobot (psobot.com).
 import argparse
 import enum
 import json
+import logging
 import os
+import sys
 import time
-
-import lldb
 
 
 class StateType(enum.Enum):
@@ -26,6 +26,10 @@ class StateType(enum.Enum):
     Stopped = 5
     Running = 6
     Stepping = 7
+    Crashed = 8
+    Detached = 9
+    Exited = 10
+    Suspended = 11
 
 
 class StopReason(enum.Enum):
@@ -59,43 +63,85 @@ def main():
     args = parser.parse_args()
 
     if os.path.exists(args.output):
-        print(f"Removing output file {args.output}...")
+        logging.info(f"Removing output file {args.output}...")
         os.remove(args.output)
 
-    print("Creating debugger...")
+    mapping = extract_mapping(args.exe)
+    with open(args.output, "w") as f:
+        json.dump(mapping, f, indent=2)
+
+
+def extract_mapping(exe: str) -> dict[int, str]:
+    # Add the installed LLVM Python path to the Python path and error if the Python version does not match:
+    # i.e.: /opt/homebrew/opt/llvm/libexec/python3.13/site-packages
+    LLVM_PYTHON_ROOT = "/opt/homebrew/opt/llvm/libexec"
+    if not os.path.exists(LLVM_PYTHON_ROOT):
+        raise ImportError(
+            f"{LLVM_PYTHON_ROOT} does not exist. Please install LLVM/LLDB first."
+        )
+
+    existing_versions = [
+        x for x in os.listdir(LLVM_PYTHON_ROOT) if x.startswith("python")
+    ]
+
+    THIS_PYTHON_LLVM_PATH = f"{LLVM_PYTHON_ROOT}/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
+    if not os.path.exists(THIS_PYTHON_LLVM_PATH):
+        raise ImportError(
+            "Your system has LLVM/LLDB installed, but it is not the same version as the Python interpreter "
+            f"you are using; found: {', '.join(existing_versions)}, but the current Python version is "
+            f"{sys.version_info.major}.{sys.version_info.minor}. Please install the same "
+            "version of LLVM/LLDB as your Python interpreter."
+        )
+
+    sys.path.append(THIS_PYTHON_LLVM_PATH)
+
+    import lldb
+
+    logging.info("Creating debugger...")
     debugger = lldb.SBDebugger.Create()
     debugger.SetAsync(False)
-    print(f"Creating target of {args.exe}...")
-    target = debugger.CreateTargetWithFileAndArch(args.exe, None)
-    print("Setting breakpoint for _sendFinishLaunchingNotification...")
+    logging.info(f"Creating target of {exe}...")
+    target = debugger.CreateTargetWithFileAndArch(exe, None)
+    logging.info("Setting breakpoint for _sendFinishLaunchingNotification...")
     target.BreakpointCreateByName("_sendFinishLaunchingNotification")
 
-    print("Setting breakpoint for _handleAEOpenEvent:...")
+    logging.info("Setting breakpoint for _handleAEOpenEvent:...")
     target.BreakpointCreateByName("_handleAEOpenEvent:")
 
-    print("Setting breakpoint for [CKContainer containerWithIdentifier:]...")
+    logging.info("Setting breakpoint for [CKContainer containerWithIdentifier:]...")
     # let's break in the CloudKit code and early exit the function before it can raise an exception:
     target.BreakpointCreateByName("[CKContainer containerWithIdentifier:]")
 
-    print("Setting breakpoint for ___lldb_unnamed_symbol[0-9]+...")
+    logging.info("Setting breakpoint for ___lldb_unnamed_symbol[0-9]+...")
     # In later Keynote versions, 'containerWithIdentifier' isn't called directly, but we can break on similar methods:
     # Note: this __lldb_unnamed_symbol hack was determined by painstaking experimentation. It will break again for sure.
     target.BreakpointCreateByRegex("___lldb_unnamed_symbol[0-9]+", "CloudKit")
 
-    print("Launching process...")
+    logging.info("Launching process...")
     process = target.LaunchSimple(None, None, os.getcwd())
 
     if not process:
-        raise ValueError("Failed to launch process: " + args.exe)
+        raise ValueError(f"Failed to launch process: {exe}")
     try:
-        print("Waiting for process to stop on a breakpoint...")
-        while process.GetState() != lldb.eStateStopped:
-            print(f"Current state: {StateType(process.GetState())}")
+        logging.info("Waiting for process to stop on a breakpoint...")
+        while (
+            process.GetState() != lldb.eStateStopped
+            and process.GetState() != lldb.eStateExited
+        ):
+            logging.info(f"Current state: {StateType(process.GetState())}")
             time.sleep(0.1)
+
+        if process.GetState() == lldb.eStateExited:
+            raise ValueError(
+                "Process exited before stopping on a breakpoint. "
+                "Ensure the process is properly code signed."
+            )
 
         while process.GetState() == lldb.eStateStopped:
             thread = process.GetThreadAtIndex(0)
-            print(f"Thread: {thread} stopped at: {StopReason(thread.GetStopReason())}")
+            logging.info(
+                f"Thread: {thread} stopped at: {StopReason(thread.GetStopReason())}"
+            )
             match thread.GetStopReason():
                 case lldb.eStopReasonBreakpoint:
                     if any(
@@ -113,7 +159,7 @@ def main():
                     else:
                         break
                 case lldb.eStopReasonException:
-                    print(repr(thread) + "\n")
+                    logging.info(repr(thread) + "\n")
                     raise NotImplementedError(
                         f"LLDB caught exception, {__file__} needs to be updated to handle."
                     )
@@ -134,11 +180,8 @@ def main():
             if x.strip()
         ]
         mapping = [(int(a), b.split(" ")[-1]) for a, b in split if "null" not in b]
-        print(f"Extracted mapping with {len(mapping):,} elements.")
-        results = json.dumps(dict(sorted(mapping)), indent=2)
-        with open(args.output, "w") as f:
-            f.write(results)
-        print(f"Wrote {len(results):,} bytes of mapping to {args.output}.")
+        logging.info(f"Extracted mapping with {len(mapping):,} elements.")
+        return dict(sorted(mapping))
     finally:
         process.Kill()
 
