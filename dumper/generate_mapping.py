@@ -1,6 +1,6 @@
-import os
-import json
 import glob
+import json
+import os
 
 RUNTIME_CODE = """
 
@@ -35,7 +35,10 @@ def main():
         f.write("\n")
 
         proto_files = sorted(
-            [os.path.basename(path) for path in glob.glob(os.path.join("..", "protos", "*.proto"))]
+            [
+                os.path.basename(path)
+                for path in glob.glob(os.path.join("..", "protos", "*.proto"))
+            ]
         )
 
         for proto_file in proto_files:
@@ -53,7 +56,11 @@ def main():
         f.write("\n")
 
         with open(mapping_filename) as mapping_file:
-            f.write(f"TSPRegistryMapping = {repr(json.load(mapping_file))}\n")
+            mapping_file_contents = mapping_file.read()
+            if mapping_file_contents == "":
+                raise ValueError(f"Mapping file {mapping_filename} is empty.")
+            mapping_file_contents = json.loads(mapping_file_contents)
+            f.write(f"TSPRegistryMapping = {repr(mapping_file_contents)}\n")
 
         f.write(RUNTIME_CODE)
 

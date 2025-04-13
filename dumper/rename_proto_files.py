@@ -19,7 +19,7 @@ def rename_proto_files(_dir):
         for old, new in replacements.items():
             contents = contents.replace('import "%s";' % old, 'import "%s";' % new)
         if contents != original_contents:
-            with open(proto_file, 'w') as f:
+            with open(proto_file, "w") as f:
                 f.write(contents)
             print("Updated %s." % proto_file)
     print("Done!")

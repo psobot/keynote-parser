@@ -33,7 +33,7 @@ def ensure_directory_exists(prefix, path):
 
 
 def file_reader(path, progress=True):
-    if path.endswith('.key'):
+    if path.endswith(".key"):
         return zip_file_reader(path, progress)
     else:
         return directory_reader(path, progress)
@@ -47,7 +47,7 @@ def zip_file_reader(path, progress=True):
     if progress:
         iterator = tqdm(iterator)
     for zipinfo in iterator:
-        if zipinfo.filename.endswith('/'):
+        if zipinfo.filename.endswith("/"):
             continue
         if progress:
             iterator.set_description("Reading {}...".format(zipinfo.filename))
@@ -57,17 +57,17 @@ def zip_file_reader(path, progress=True):
 
 def directory_reader(path, progress=True):
     # Python <3.5 doesn't support glob with recursive, so this will have to do.
-    iterator = set(sum([glob(path + ('/**' * i)) for i in range(10)], []))
+    iterator = set(sum([glob(path + ("/**" * i)) for i in range(10)], []))
     iterator = sorted(iterator)
     if progress:
         iterator = tqdm(iterator)
     for filename in iterator:
         if os.path.isdir(filename):
             continue
-        rel_filename = filename.replace(path + '/', '')
+        rel_filename = filename.replace(path + "/", "")
         if progress:
             iterator.set_description("Reading {}...".format(rel_filename))
-        with open(filename, 'rb') as handle:
+        with open(filename, "rb") as handle:
             yield (rel_filename, handle)
 
 
@@ -77,7 +77,7 @@ def file_sink(path, raw=False, subfile=None):
             return cat_sink(subfile, raw)
         else:
             return ls_sink()
-    if path.endswith('.key'):
+    if path.endswith(".key"):
         return zip_file_sink(path)
     return dir_file_sink(path, raw=raw)
 
@@ -89,7 +89,7 @@ def dir_file_sink(target_dir, raw=False):
         target_path = os.path.join(target_dir, filename)
         if isinstance(contents, IWAFile) and not raw:
             target_path += ".yaml"
-        with open(target_path, 'wb') as out:
+        with open(target_path, "wb") as out:
             if isinstance(contents, IWAFile):
                 if raw:
                     out.write(contents.to_buffer())
@@ -131,7 +131,7 @@ def cat_sink(subfile, raw):
                             default_flow_style=False,
                             encoding="utf-8",
                             Dumper=Dumper,
-                        ).decode('ascii')
+                        ).decode("ascii")
                     )
             else:
                 sys.stdout.buffer.write(contents)
@@ -152,7 +152,7 @@ def zip_file_sink(output_path):
     yield accept
 
     print("Writing to %s..." % output_path)
-    with ZipFile(output_path, 'w') as zipfile:
+    with ZipFile(output_path, "w") as zipfile:
         for filename, contents in tqdm(
             iter(list(files_to_write.items())), total=len(files_to_write)
         ):
@@ -164,13 +164,13 @@ def zip_file_sink(output_path):
 
 def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=None):
     contents = None
-    if '.iwa' in filename and not raw:
+    if ".iwa" in filename and not raw:
         contents = handle.read()
-        if filename.endswith('.yaml'):
+        if filename.endswith(".yaml"):
             file = IWAFile.from_dict(
-                yaml.load(fix_unicode(contents.decode('utf-8')), Loader=Loader)
+                yaml.load(fix_unicode(contents.decode("utf-8")), Loader=Loader)
             )
-            filename = filename.replace('.yaml', '')
+            filename = filename.replace(".yaml", "")
         else:
             file = IWAFile.from_buffer(contents, filename)
 
@@ -202,7 +202,7 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
             if data_filename.startswith(repl_filepart):
                 # Scale this file to the appropriate size
                 image = Image.open(handle)
-                with open(replacement.replace, 'rb') as f:
+                with open(replacement.replace, "rb") as f:
                     read_image = Image.open(f)
                     with BytesIO() as output:
                         read_image.thumbnail(image.size, Image.ANTIALIAS)

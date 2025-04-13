@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "TSPMessages.proto";
 import "TSKArchives.proto";
+import "TSCKArchives.proto";
 import "TSSArchives.proto";
 import "TSDArchives.proto";
 import "TSWPArchives.proto";
@@ -389,7 +390,7 @@ message IOSSavedPlaybackStateArchive {
     Record = 2;
     PlayRecording = 3;
     Rehearse = 4;
-    Showcast = 5;
+    Showcast_DEPRECATED = 5;
   }
   optional .KN.IOSSavedPlaybackStateArchive.PresentationType presentation_type = 1;
   optional uint32 slide_node_index = 2;
@@ -648,10 +649,10 @@ message MixedIdOperationArgs {
     HidePlaceholder = 3;
   }
   repeated .KN.MixedIdOperationArgs.ArgsListKind args_list_types = 1;
-  repeated .TSK.AddIdOperationArgs add_args_list = 2;
-  repeated .TSK.IdPlacementOperationArgs show_placeholder_args_list = 3;
-  repeated .TSK.RemoveIdOperationArgs remove_args_list = 4;
-  repeated .TSK.IdPlacementOperationArgs hide_placeholder_args_list = 5;
+  repeated .TSCK.AddIdOperationArgs add_args_list = 2;
+  repeated .TSCK.IdPlacementOperationArgs show_placeholder_args_list = 3;
+  repeated .TSCK.RemoveIdOperationArgs remove_args_list = 4;
+  repeated .TSCK.IdPlacementOperationArgs hide_placeholder_args_list = 5;
 }
 
 message LiveVideoInfo {

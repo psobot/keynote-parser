@@ -22,7 +22,7 @@ element is between 0xD800 and 0xDBFF, and the second element is between
 import re
 
 PY2_SURROGATE_PAIR_RE = re.compile(
-    r'\\u([Dd][89a-bA-B][0-9a-fA-F]{2})\\u([Dd][c-fC-F][0-9a-fA-F]{2})'
+    r"\\u([Dd][89a-bA-B][0-9a-fA-F]{2})\\u([Dd][c-fC-F][0-9a-fA-F]{2})"
 )
 
 

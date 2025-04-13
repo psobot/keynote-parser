@@ -2,6 +2,7 @@ syntax = "proto2";
 
 import "TSPMessages.proto";
 import "TSKArchives.proto";
+import "TSCKArchives.proto";
 import "TSSArchives.proto";
 import "TSDArchives.proto";
 import "TSDArchives_sos.proto";
@@ -87,7 +88,7 @@ message CommandSlideRemoveDrawableArchive {
 message CommandSlideMoveDrawableZOrderArchive {
   required .TSK.CommandArchive super = 1;
   repeated .TSP.Reference old_ordered_infos = 4;
-  repeated .TSK.RearrangeIdOperationArgs args_list = 6;
+  repeated .TSCK.RearrangeIdOperationArgs args_list = 6;
   required .TSP.UUID slide_id = 7;
   repeated .TSP.Reference old_ordered_infos_on_slide_for_undo = 8;
 }
@@ -174,7 +175,7 @@ message CommandShowInsertSlideArchive {
   required .TSK.CommandArchive super = 1;
   repeated .TSP.Reference slide_nodes_being_inserted = 2;
   repeated .TSP.Reference working_slide_nodes_being_inserted = 14;
-  repeated .TSK.AddIdOperationArgs inserted_args_list = 3;
+  repeated .TSCK.AddIdOperationArgs inserted_args_list = 3;
   repeated .TSP.UUID ids_of_slide_nodes_with_depth_changes = 4;
   repeated uint32 depths_of_slide_nodes_with_depth_changes = 5;
   repeated uint32 old_depths_of_slide_nodes_with_depth_changes = 6;
@@ -191,7 +192,7 @@ message CommandShowInsertSlideArchive {
 message CommandShowMoveSlideArchive {
   required .TSK.CommandArchive super = 1;
   repeated .TSP.Reference slide_nodes_being_moved_linearly = 2;
-  repeated .TSK.RearrangeIdOperationArgs rearranged_args_list = 3;
+  repeated .TSCK.RearrangeIdOperationArgs rearranged_args_list = 3;
   repeated .TSP.UUID ids_of_slide_nodes_with_depth_changes = 4;
   repeated uint32 depths_of_slide_nodes_with_depth_changes = 5;
   repeated uint32 old_depths_of_slide_nodes_with_depth_changes = 6;
@@ -203,7 +204,7 @@ message CommandShowMoveSlideArchive {
 message CommandShowRemoveSlideArchive {
   required .TSK.CommandArchive super = 1;
   repeated .TSP.Reference slide_nodes_being_removed = 2;
-  repeated .TSK.RemoveIdOperationArgs removed_args_list = 3;
+  repeated .TSCK.RemoveIdOperationArgs removed_args_list = 3;
   repeated .TSP.UUID ids_of_slide_nodes_with_depth_changes = 4;
   repeated uint32 depths_of_slide_nodes_with_depth_changes = 5;
   repeated uint32 old_depths_of_slide_nodes_with_depth_changes = 6;
@@ -481,7 +482,7 @@ message CommandSoundtrackSetValue {
 message CommandSlideUpdateTemplateDrawables {
   required .TSK.CommandArchive super = 1;
   required .TSP.UUID slide_id = 2;
-  repeated .TSK.IdPlacementOperationArgs id_placement_operation_args = 3;
+  repeated .TSCK.IdPlacementOperationArgs id_placement_operation_args = 3;
   repeated .TSP.Reference old_child_infos_for_undo = 4;
 }
 
