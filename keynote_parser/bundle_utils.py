@@ -1,20 +1,22 @@
 import os
-import sys
-import warnings
 import plistlib
+import sys
 import urllib.parse
-from colorama import init as colorama_init
+import warnings
+
 from colorama import Fore
+from colorama import init as colorama_init
+
 from keynote_parser import (
-    __version__,
-    __supported_keynote_version__,
-    __new_issue_url__,
     __command_line_invocation__,
+    __new_issue_url__,
+    __supported_keynote_version__,
+    __version__,
 )
 from keynote_parser.macos_app_version import MacOSAppVersion
 
-DEFAULT_KEYNOTE_INSTALL_PATH = '/Applications/Keynote.app'
-VERSION_PLIST_PATH = 'Contents/version.plist'
+DEFAULT_KEYNOTE_INSTALL_PATH = "/Applications/Keynote.app"
+VERSION_PLIST_PATH = "Contents/version.plist"
 
 
 colorama_init()
@@ -22,14 +24,14 @@ colorama_init()
 
 def get_installed_keynote_version():
     try:
-        fp = open(os.path.join(DEFAULT_KEYNOTE_INSTALL_PATH, VERSION_PLIST_PATH), 'rb')
-    except IOError:
+        fp = open(os.path.join(DEFAULT_KEYNOTE_INSTALL_PATH, VERSION_PLIST_PATH), "rb")
+    except OSError:
         return None
     version_dict = plistlib.load(fp)
     return MacOSAppVersion(
-        version_dict['CFBundleShortVersionString'],
-        version_dict['CFBundleVersion'],
-        version_dict['ProductBuildVersion'],
+        version_dict["CFBundleShortVersionString"],
+        version_dict["CFBundleVersion"],
+        version_dict["ProductBuildVersion"],
     )
 
 
@@ -74,7 +76,7 @@ class KeynoteVersionWarning(UserWarning):
         )
 
 
-class CleanWarning(object):
+class CleanWarning:
     def custom_format_warning(self, message, *args, **kwargs):
         # Nasty hack - by putting the initial colour in the formatter,
         # the Warnings filter still lets users ignore this warning as

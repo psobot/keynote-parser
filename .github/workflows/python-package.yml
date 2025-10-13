@@ -1,7 +1,7 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
 
-name: PyTest & Flake8
+name: PyTest & Ruff
 
 on:
   push:
@@ -11,40 +11,43 @@ on:
 
 jobs:
   build:
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: [3.7, 3.8, 3.9, "3.10", "3.11"]
+        python-version: ["3.10", "3.11", "3.12", "3.13"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
+    
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
+    
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+    
+    - name: Install system dependencies
       run: |
-        pip install protobuf>=4
-        # protobuf 4 or later is necessary
+        sudo apt-get update
+        sudo apt-get install -y libsnappy-dev
+        # Download specific protoc version needed for proto compilation
         wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
         unzip protoc-21.9-linux-x86_64.zip -d protoc
-        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
-        sudo apt-get install -qq libsnappy-dev
-        python -m pip install --upgrade pip
-        pip install flake8 pytest
-        pip install -r requirements.txt
-      env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-    - name: Build package
-      run: make
-    - name: Lint with flake8
+        echo "$PWD/protoc/bin" >> $GITHUB_PATH
+    
+    - name: Install Python dependencies
       run: |
-        # stop the build if there are Python syntax errors or undefined names
-        flake8 . --count --select=E9,F63,F7,F82 --show-source --statistics --exclude keynote_parser/generated
-        # exit-zero treats all errors as warnings. The GitHub editor is 127 chars wide
-        flake8 . --count --exit-zero --max-complexity=10 --max-line-length=127 --statistics --exclude keynote_parser/generated
+        uv pip install --system -e ".[dev]"
+    
+    - name: Build package (generate protobuf files)
+      run: make all
+    
+    - name: Lint with Ruff
+      run: |
+        ruff check keynote_parser tests
+    
     - name: Test with pytest
       run: |
-        export PYTHONPATH=$PYTHONPATH:$(pwd)
         pytest --cov=keynote_parser
