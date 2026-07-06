@@ -23,6 +23,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: ${{ matrix.python-version }}
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
     - name: Install dependencies
       run: |
         pip install protobuf>=4
@@ -32,12 +34,12 @@ jobs:
         echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         python -m pip install --upgrade pip
-        pip install ruff pytest rich 'protobuf>=3.20.0rc1,<4'
+        pip install ruff pytest 'protobuf>=3.20.0rc1,<4'
         pip install -r requirements.txt
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     - name: Build gencode
-      run: PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
+      run: uv run --script dumper/run.py
     - name: Lint with ruff
       run: ruff check .
     - name: Test with pytest

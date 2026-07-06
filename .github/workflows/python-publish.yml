@@ -18,6 +18,8 @@ jobs:
       uses: actions/setup-python@v2
       with:
         python-version: '3.x'
+    - name: Install uv
+      uses: astral-sh/setup-uv@v5
     - name: Install dependencies
       run: |
         pip install protobuf>=4
@@ -28,14 +30,14 @@ jobs:
         sudo apt-get install -qq libsnappy-dev
         pip install -r requirements.txt
         python -m pip install --upgrade pip
-        pip install setuptools wheel twine build rich 'protobuf>=3.20.0rc1,<4'
+        pip install setuptools wheel twine build 'protobuf>=3.20.0rc1,<4'
     - name: Build and publish
       env:
         TWINE_USERNAME: __token__
         TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
       run: |
         # Build the gencode:
-        PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
+        uv run --script dumper/run.py
         # Build the package:
         python -m build
         # Upload the package:
