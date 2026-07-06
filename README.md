@@ -101,12 +101,11 @@ created by older versions of `keynote-parser`:
 As `keynote-parser` includes Protobuf definitions extracted from a copy of Keynote,
 new versions of Keynote will inevitably create `.key` files that cannot be read by `keynote-parser`.
 As new versions of Keynote are released, updates to `keynote-parser` can be made automatically
-by running the following on a macOS machine with Keynote installed:
+by running the following on a macOS machine with Keynote, `protoc`, and LLVM/LLDB installed:
 
 ```shell
-cd dumper
-make clean
-make
+# Prerequisites (macOS, one-time): brew install uv protobuf llvm
+./dumper/run.py --app-path /Applications/Keynote.app
 ```
 
 ## Troubleshooting

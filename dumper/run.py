@@ -1,3 +1,4 @@
+#!/usr/bin/env -S uv run --script
 # /// script
 # dependencies = [
 #   "protobuf>=3.20.0rc1,<4",
@@ -22,11 +23,11 @@ from typing import Generator
 
 from rich.logging import RichHandler
 
-from dumper.extract_mapping import extract_mapping
-from dumper.generate_mapping import generate_mapping
-from dumper.protodump import extract_proto_files
-from dumper.rename_proto_files import rename_proto_files
-from dumper.rewrite_imports import rewrite_imports
+from extract_mapping import extract_mapping
+from generate_mapping import generate_mapping
+from protodump import extract_proto_files
+from rename_proto_files import rename_proto_files
+from rewrite_imports import rewrite_imports
 
 logging.basicConfig(
     level="NOTSET",
@@ -43,14 +44,16 @@ def unsigned_copy_of(app_path: str) -> Generator[str, None, None]:
 
     # Get the identity from the system:
     logging.info("Getting codesigning identity...")
-    identity = subprocess.check_output(
+    identity_output = subprocess.check_output(
         ["security", "find-identity", "-v", "-p", "codesigning"]
     ).decode()
-    identity = identity.split('"')[1]
-    if not identity:
+    parts = identity_output.split('"')
+    if len(parts) < 2:
         raise ValueError(
-            "No codesigning identity found; please create one in Keychain Access first."
+            "No codesigning identity found; please create one in Keychain Access first. "
+            "See https://developer.apple.com/documentation/technotes/tn3161-inside-code-signing-certificates"
         )
+    identity = parts[1]
     logging.info(f"Resigning {app_path} with local codesigning identity: {identity!r}")
 
     with tempfile.TemporaryDirectory() as temp_dir:
