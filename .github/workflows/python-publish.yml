@@ -7,34 +7,40 @@ on:
   release:
     types: [created]
 
+permissions: {}
+
 jobs:
   deploy:
-    runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
+    permissions:
+      contents: read
+      id-token: write
+    runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@v2
-    - name: Set up Python
-      uses: actions/setup-python@v2
+    - uses: actions/checkout@9c091bb21b7c1c1d1991bb908d89e4e9dddfe3e0 # v7.0.0
       with:
-        python-version: '3.x'
+        persist-credentials: false
+    - name: Set up Python
+      uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6.3.0
+      with:
+        python-version: '3.13'
     - name: Install uv
-      uses: astral-sh/setup-uv@v5
+      uses: astral-sh/setup-uv@fac544c07dec837d0ccb6301d7b5580bf5edae39 # v8.2.0
+      with:
+        enable-cache: false
+        python-version: '3.13'
+    - name: Set path
+      run: echo "${PWD}/protoc/bin/" >> $GITHUB_PATH
     - name: Install dependencies
       run: |
         pip install protobuf>=4
         # protobuf 4 or later is necessary
         wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
         unzip protoc-21.9-linux-x86_64.zip -d protoc
-        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         pip install -r requirements.txt
         python -m pip install --upgrade pip
         pip install setuptools wheel twine build 'protobuf>=3.20.0rc1,<4'
-    - name: Build and publish
-      env:
-        TWINE_USERNAME: __token__
-        TWINE_PASSWORD: ${{ secrets.PYPI_TOKEN }}
+    - name: Build
       run: |
         # Build the gencode:
         uv run --script dumper/run.py
@@ -42,3 +48,5 @@ jobs:
         python -m build
         # Upload the package:
         twine upload dist/*
+    - name: Publish to PyPI via OIDC
+      uses: pypa/gh-action-pypi-publish@cef221092ed1bacb1cc03d23a2d87d1d172e277b # v1.14.0
