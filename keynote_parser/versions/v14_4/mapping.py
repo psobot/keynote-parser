@@ -1,4 +1,4 @@
-# Generated code! Edit /Users/psobot/Code/keynote-parser/dumper/generate_mapping.py instead.
+# Generated code! Edit dumper/generate_mapping.py instead.
 
 from __future__ import absolute_import
 
@@ -709,12 +709,27 @@ TSPRegistryMapping = {
 }
 
 
+def collect_nested_message_types(message_type, name_class_map):
+    # Messages nested inside other messages (i.e. TST.GroupByArchive.GroupNodeArchive)
+    # are referenced by the TSP registry just like top-level ones, but don't appear in
+    # DESCRIPTOR.message_types_by_name, so we have to walk into them explicitly.
+    for nested_descriptor in message_type.DESCRIPTOR.nested_types:
+        nested_type = getattr(message_type, nested_descriptor.name, None)
+        if nested_type is None:
+            # Map entry types (i.e. the synthetic FooEntry of a map<k, v> field)
+            # have descriptors but no generated class; nothing to register.
+            continue
+        name_class_map[nested_type.DESCRIPTOR.full_name] = nested_type
+        collect_nested_message_types(nested_type, name_class_map)
+
+
 def compute_maps():
     name_class_map = {}
     for file in PROTO_FILES:
         for message_name in file.DESCRIPTOR.message_types_by_name:
             message_type = getattr(file, message_name)
             name_class_map[message_type.DESCRIPTOR.full_name] = message_type
+            collect_nested_message_types(message_type, name_class_map)
 
     id_name_map = {}
     for k, v in list(TSPRegistryMapping.items()):
