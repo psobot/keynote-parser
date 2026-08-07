@@ -1,15 +1,15 @@
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools>=61.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [project]
 name = "keynote-parser"
-dynamic = ["version"]
-description = "A tool for manipulating Apple Keynote presentation files."
+version = "1.11.2.3"
+description = "A tool for unpacking and re-packing Apple Keynote files"
 readme = "README.md"
-license = { text = "MIT License" }
+requires-python = ">=3.10"
+license = { text = "MIT" }
 authors = [{ name = "Peter Sobot", email = "github@petersobot.com" }]
-requires-python = ">=3.9"
 keywords = ["keynote", "macOS", "apple", "presentation", "powerpoint"]
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -17,11 +17,11 @@ classifiers = [
     "Topic :: Software Development :: Build Tools",
     "License :: OSI Approved :: MIT License",
     "Programming Language :: Python :: 3",
-    "Programming Language :: Python :: 3.9",
     "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
 ]
 dependencies = [
     "protobuf>=3.13.0",
@@ -29,29 +29,65 @@ dependencies = [
     "python-snappy>=0.5.3",
     "PyYAML>=5.3.1",
     "Pillow>=7.1.0",
-    "future>=0.17.1",
     "colorama>=0.4.3",
 ]
 
 [project.optional-dependencies]
-dev = ["check-manifest"]
-test = ["coverage"]
+dev = [
+    "pytest>=7.0.0",
+    "pytest-cov>=4.0.0",
+    "ruff>=0.8.0",
+    "pre-commit>=3.0.0",
+    "pyright>=1.1.389",
+]
 
 [project.scripts]
 keynote-parser = "keynote_parser.command_line:main"
 
 [project.urls]
+Homepage = "https://github.com/psobot/keynote-parser/"
 "Bug Reports" = "https://github.com/psobot/keynote-parser/issues"
-"Source" = "https://github.com/psobot/keynote-parser/"
+Source = "https://github.com/psobot/keynote-parser/"
 
-[tool.setuptools.dynamic]
-version = { attr = "keynote_parser.__version__" }
+[tool.setuptools]
+packages = ["keynote_parser"]
 
-[tool.setuptools.packages.find]
-exclude = ["contrib*", "docs*", "tests*", "protos*"]
+[tool.setuptools.package-data]
+keynote_parser = ["generated/**/*.py"]
 
-[tool.coverage.run]
-omit = ["keynote_parser/versions/*"]
+[tool.ruff]
+line-length = 127
+target-version = "py310"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "F",  # pyflakes
+    "W",  # pycodestyle warnings
+    "I",  # isort
+    "N",  # pep8-naming
+    "UP", # pyupgrade
+    "B",  # flake8-bugbear
+]
+ignore = [
+    "E501", # line too long (handled by formatter)
+    "N802", # function name should be lowercase (protobuf generated code)
+    "N803", # argument name should be lowercase (protobuf generated code)
+    "N806", # variable in function should be lowercase (protobuf generated code)
+]
+
+[tool.ruff.lint.per-file-ignores]
+"keynote_parser/generated/**" = ["E", "F", "W", "I", "N", "UP", "B"]
 
 [tool.pytest.ini_options]
-addopts = "--cov=keynote_parser"
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+addopts = "--cov=keynote_parser --cov-report=term-missing"
+
+[tool.pyright]
+include = ["keynote_parser"]
+exclude = ["keynote_parser/generated", "**/__pycache__", "build", "dist"]
+pythonVersion = "3.10"
+typeCheckingMode = "basic"
+reportMissingImports = true
+reportMissingTypeStubs = false

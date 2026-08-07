@@ -1,23 +1,19 @@
-from __future__ import print_function
-from __future__ import absolute_import
-
 import os
 import sys
 
 try:
-    from yaml import CLoader as Loader, CDumper as Dumper
+    from yaml import CDumper as Dumper
+    from yaml import CLoader as Loader
 except ImportError:
-    from yaml import Loader, Dumper
-import yaml
-
+    from yaml import Dumper, Loader
 from contextlib import contextmanager
-
-from PIL import Image
-from io import BytesIO
-
 from glob import glob
-from tqdm import tqdm
+from io import BytesIO
 from zipfile import ZipFile
+
+import yaml
+from PIL import Image
+from tqdm import tqdm
 
 from .codec import IWAFile
 from .unicode_utils import fix_unicode
@@ -50,7 +46,7 @@ def zip_file_reader(path, progress=True):
         if zipinfo.filename.endswith("/"):
             continue
         if progress:
-            iterator.set_description("Reading {}...".format(zipinfo.filename))
+            iterator.set_description(f"Reading {zipinfo.filename}...")
         with zipfile.open(zipinfo) as handle:
             yield (zipinfo.filename, handle)
 
@@ -66,7 +62,7 @@ def directory_reader(path, progress=True):
             continue
         rel_filename = filename.replace(path + "/", "")
         if progress:
-            iterator.set_description("Reading {}...".format(rel_filename))
+            iterator.set_description(f"Reading {rel_filename}...")
         with open(filename, "rb") as handle:
             yield (rel_filename, handle)
 
@@ -153,9 +149,7 @@ def zip_file_sink(output_path):
 
     print("Writing to %s..." % output_path)
     with ZipFile(output_path, "w") as zipfile:
-        for filename, contents in tqdm(
-            iter(list(files_to_write.items())), total=len(files_to_write)
-        ):
+        for filename, contents in tqdm(iter(list(files_to_write.items())), total=len(files_to_write)):
             if isinstance(contents, IWAFile):
                 zipfile.writestr(filename, contents.to_buffer())
             else:
@@ -167,9 +161,7 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
     if ".iwa" in filename and not raw:
         contents = handle.read()
         if filename.endswith(".yaml"):
-            file = IWAFile.from_dict(
-                yaml.load(fix_unicode(contents.decode("utf-8")), Loader=Loader)
-            )
+            file = IWAFile.from_dict(yaml.load(fix_unicode(contents.decode("utf-8")), Loader=Loader))
             filename = filename.replace(".yaml", "")
         else:
             file = IWAFile.from_buffer(contents, filename)

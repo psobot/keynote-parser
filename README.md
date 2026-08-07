@@ -109,6 +109,55 @@ make clean
 make
 ```
 
+## Development
+
+This project requires Python 3.10 or later and uses [uv](https://github.com/astral-sh/uv) for dependency management.
+
+### Setup
+
+```bash
+# Create virtualenv and install dev dependencies
+make install-dev
+
+# Or manually:
+uv venv
+uv pip install -e ".[dev]"
+```
+
+### Available Commands
+
+The Makefile automatically creates a `.venv` virtualenv and installs dependencies:
+
+```bash
+make install-dev         # Create venv and install with dev dependencies
+make lint                # Run ruff linter
+make format              # Format code with ruff
+make type-check          # Run pyright type checker
+make test                # Run tests with pytest
+make pre-commit-install  # Install pre-commit hooks
+make clean-all           # Remove build artifacts and virtualenv
+```
+
+### Pre-commit Hooks
+
+This project uses pre-commit hooks to ensure code quality. The hooks run automatically on `git commit` and include:
+- **ruff**: Fast Python linter and formatter
+- **pyright**: Static type checker
+- **trailing-whitespace**, **end-of-file-fixer**, and other basic checks
+
+To run the hooks manually:
+```bash
+uvx pre-commit run --all-files
+```
+
+### Testing
+
+The project uses pytest for testing and supports Python 3.10, 3.11, 3.12, 3.13, and 3.14.
+
+```bash
+pytest --cov=keynote_parser
+```
+
 ## Troubleshooting
 
 ### Unable to complete installation due to snappy-c.h not found.

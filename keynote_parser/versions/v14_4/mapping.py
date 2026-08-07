@@ -1,6 +1,5 @@
 # Generated code! Edit /Users/psobot/Code/keynote-parser/dumper/generate_mapping.py instead.
 
-from __future__ import absolute_import
 
 from .generated import KNArchives_pb2 as KNArchives
 from .generated import KNArchives_sos_pb2 as KNArchives_sos
@@ -17,8 +16,9 @@ from .generated import TSCHArchives_pb2 as TSCHArchives
 from .generated import TSCHArchives_sos_pb2 as TSCHArchives_sos
 from .generated import TSCHCommandArchives_pb2 as TSCHCommandArchives
 from .generated import TSCHPreUFFArchives_pb2 as TSCHPreUFFArchives
-from .generated import TSCKArchives_pb2 as TSCKArchives
-from .generated import TSCKArchives_sos_pb2 as TSCKArchives_sos
+
+# from .generated import TSCKArchives_pb2 as TSCKArchives
+# from .generated import TSCKArchives_sos_pb2 as TSCKArchives_sos
 from .generated import TSDArchives_pb2 as TSDArchives
 from .generated import TSDArchives_sos_pb2 as TSDArchives_sos
 from .generated import TSDCommandArchives_pb2 as TSDCommandArchives
@@ -53,8 +53,8 @@ PROTO_FILES = [
     TSCHArchives_sos,
     TSCHCommandArchives,
     TSCHPreUFFArchives,
-    TSCKArchives,
-    TSCKArchives_sos,
+    # TSCKArchives,
+    # TSCKArchives_sos,
     TSDArchives,
     TSDArchives_sos,
     TSDCommandArchives,

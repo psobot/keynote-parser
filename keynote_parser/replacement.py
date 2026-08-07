@@ -1,7 +1,5 @@
-from builtins import zip
-from builtins import object
-import re
 import json
+import re
 
 
 def parse_json(json_path):
@@ -11,19 +9,10 @@ def parse_json(json_path):
         for replacement_dict in data["replacements"]:
             try:
                 replacements.append(
-                    Replacement(
-                        **{
-                            x: replacement_dict[x]
-                            for x in ("find", "replace", "key_path")
-                            if x in replacement_dict
-                        }
-                    )
+                    Replacement(**{x: replacement_dict[x] for x in ("find", "replace", "key_path") if x in replacement_dict})
                 )
             except Exception as e:
-                raise ValueError(
-                    "Failed to parse %s (data: '%s'): %s"
-                    % (json_path, replacement_dict, e)
-                )
+                raise ValueError("Failed to parse %s (data: '%s'): %s" % (json_path, replacement_dict, e))
     return replacements
 
 
@@ -33,7 +22,7 @@ def merge_two_dicts(x, y):
     return z
 
 
-class Replacement(object):
+class Replacement:
     DEFAULT_KEY_PATH = "chunks.[].archives.[].objects.[].text.[]"
 
     def __init__(self, find, replace, key_path=DEFAULT_KEY_PATH):
@@ -71,10 +60,8 @@ class Replacement(object):
 
         entries = _dict["tableParaStyle"]["entries"]
         if len(entries) != len(new_offsets):
-            raise NotImplementedError(
-                "New line count doesn't match old line count in data: %s", text
-            )
-        for para_entry, offset in zip(entries, new_offsets):
+            raise NotImplementedError("New line count doesn't match old line count in data: %s", text)
+        for para_entry, offset in zip(entries, new_offsets, strict=False):
             para_entry["characterIndex"] = offset
         return _dict
 
@@ -98,7 +85,7 @@ class Replacement(object):
         char_style_entries = data["tableCharStyle"]["entries"]
         parts = []
         new_indices = []
-        for start, end in zip(char_style_entries, char_style_entries[1:]):
+        for start, end in zip(char_style_entries, char_style_entries[1:], strict=False):
             start_index = start["characterIndex"]
             end_index = end["characterIndex"]
             chunk = text[start_index:end_index]
@@ -110,7 +97,7 @@ class Replacement(object):
         new_indices.append(new_indices[-1] + len(parts[-1]))
         parts.append(text[char_style_entries[-1]["characterIndex"] :])
         data["text"][0] = "".join(parts)
-        for new_start, entry in zip(new_indices, char_style_entries):
+        for new_start, entry in zip(new_indices, char_style_entries, strict=False):
             entry["characterIndex"] = new_start
         return data
 
@@ -125,9 +112,7 @@ class Replacement(object):
             return [self.perform_on(obj, depth + 1, on_replace) for obj in data]
         if key_path[0] in data:
             if key_path[0] == "text":
-                output = self.correct_charstyle_replacement(
-                    data, key_path, depth, on_replace
-                )
+                output = self.correct_charstyle_replacement(data, key_path, depth, on_replace)
                 output = self.correct_multiline_replacement(output)
             else:
                 old_value = data[key_path[0]]

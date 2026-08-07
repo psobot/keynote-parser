@@ -1,6 +1,9 @@
-from __future__ import absolute_import, print_function
-
 import argparse
+
+import keynote_parser
+
+keynote_parser.__command_line_invocation__ = True  # noqa
+
 from collections import Counter
 
 from keynote_parser import __supported_keynote_version__, __version__
@@ -27,9 +30,7 @@ def unpack_command(input, output=None, **kwargs):
 
 
 def pack_command(input, output=None, **kwargs):
-    process(
-        input, output or (input + ".key"), replacements=parse_replacements(**kwargs)
-    )
+    process(input, output or (input + ".key"), replacements=parse_replacements(**kwargs))
 
 
 def ls_command(input, **kwargs):
@@ -55,9 +56,7 @@ def replace_command(input, **kwargs):
     if not replacements:
         print("WARNING: No replacements passed. No change.")
         return
-    for (old, new), count in list(
-        Counter(process(input, output, replacements)).items()
-    ):
+    for (old, new), count in list(Counter(process(input, output, replacements)).items()):
         if count == 1:
             print("Replaced %s with %s." % (repr(old), repr(new)))
         else:
@@ -65,22 +64,16 @@ def replace_command(input, **kwargs):
 
 
 def add_replacement_arg(parser):
-    parser.add_argument(
-        "--replacements", help="apply replacements from a json or yaml file"
-    )
+    parser.add_argument("--replacements", help="apply replacements from a json or yaml file")
 
 
 def main():
     installed_version = get_installed_keynote_version()
     install_warning = ""
     if installed_version and __supported_keynote_version__ < installed_version:
-        install_warning = (
-            " (Installed Keynote version %s not yet supported.)" % installed_version
-        )
+        install_warning = " (Installed Keynote version %s not yet supported.)" % installed_version
     parser = argparse.ArgumentParser(
-        description=(
-            "manipulate Apple Keynote .key files. version %s, supports Keynote versions up to %s.%s"
-        )
+        description=("manipulate Apple Keynote .key files. version %s, supports Keynote versions up to %s.%s")
         % (__version__, __supported_keynote_version__, install_warning)
     )
     parser.add_argument("-v", "--version", action="version", version=__version__)
@@ -95,9 +88,7 @@ def main():
 
     parser_pack = subparsers.add_parser("pack")
     parser_pack.add_argument("input", help="a directory of an unpacked .key file")
-    parser_pack.add_argument(
-        "--output", "-o", help="a keynote file name to unpack into"
-    )
+    parser_pack.add_argument("--output", "-o", help="a keynote file name to unpack into")
     add_replacement_arg(parser_pack)
     parser_pack.set_defaults(func=pack_command)
 
@@ -107,9 +98,7 @@ def main():
 
     parser_cat = subparsers.add_parser("cat")
     parser_cat.add_argument("input", help="a .key file")
-    parser_cat.add_argument(
-        "filename", help="a file within that .key file to cat, decoding .iwa to .yaml"
-    )
+    parser_cat.add_argument("filename", help="a file within that .key file to cat, decoding .iwa to .yaml")
     parser_cat.add_argument(
         "--raw",
         action="store_true",

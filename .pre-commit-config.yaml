@@ -1,0 +1,34 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: check-toml
+      - id: debug-statements
+
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.8.4
+    hooks:
+      - id: ruff
+        args: [--fix, --exit-non-zero-on-fix]
+        exclude: ^keynote_parser/generated/
+      - id: ruff-format
+        exclude: ^keynote_parser/generated/
+
+  - repo: https://github.com/RobertCraigie/pyright-python
+    rev: v1.1.389
+    hooks:
+      - id: pyright
+        exclude: ^(tests/|keynote_parser/generated/)
+        additional_dependencies:
+          - protobuf>=3.13.0
+          - tqdm>=4.14.0
+          - python-snappy>=0.5.3
+          - PyYAML>=5.3.1
+          - Pillow>=7.1.0
+          - colorama>=0.4.3
+

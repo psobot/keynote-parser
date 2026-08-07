@@ -1,5 +1,5 @@
-# This workflows will upload a Python Package using Twine when a release is created
-# For more information see: https://help.github.com/en/actions/language-and-framework-guides/using-python-with-github-actions#publishing-to-package-registries
+# This workflow will upload a Python Package using Twine when a release is created
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
 
 name: Deploy Python Package
 
@@ -10,25 +10,29 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
-        python-version: '3.x'
+        python-version: '3.12'
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -qq libsnappy-dev
+    - name: Install protoc
+      run: |
+        wget https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-linux-x86_64.zip
+        unzip protoc-28.3-linux-x86_64.zip -d protoc
+        echo "$PWD/protoc/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        pip install protobuf>=4
-        # protobuf 4 or later is necessary
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
-        unzip protoc-21.9-linux-x86_64.zip -d protoc
-        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
-        sudo apt-get install -qq libsnappy-dev
-        pip install -r requirements.txt
-        python -m pip install --upgrade pip
-        pip install setuptools wheel twine build rich 'protobuf>=3.20.0rc1,<4'
+        uv pip install --system -e ".[dev]"
+        uv pip install --system build twine rich
     - name: Build and publish
       env:
         TWINE_USERNAME: __token__

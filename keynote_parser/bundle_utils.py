@@ -1,4 +1,3 @@
-import inspect
 import os
 import plistlib
 import sys
@@ -9,6 +8,7 @@ from colorama import Fore
 from colorama import init as colorama_init
 
 from keynote_parser import (
+    __command_line_invocation__,
     __new_issue_url__,
     __supported_keynote_version__,
     __version__,
@@ -25,7 +25,7 @@ colorama_init()
 def get_installed_keynote_version():
     try:
         fp = open(os.path.join(DEFAULT_KEYNOTE_INSTALL_PATH, VERSION_PLIST_PATH), "rb")
-    except IOError:
+    except OSError:
         return None
     version_dict = plistlib.load(fp)
     return MacOSAppVersion(
@@ -78,7 +78,7 @@ class KeynoteVersionWarning(UserWarning):
         )
 
 
-class CleanWarning(object):
+class CleanWarning:
     def custom_format_warning(self, message, *args, **kwargs):
         # Nasty hack - by putting the initial colour in the formatter,
         # the Warnings filter still lets users ignore this warning as
@@ -119,9 +119,5 @@ def warn_once_on_newer_keynote(installed_keynote_version=None):
     return DID_WARN
 
 
-IS_INVOKED_ON_COMMAND_LINE = any(
-    frame.function == "__main__" for frame in inspect.stack()
-)
-
-if not IS_INVOKED_ON_COMMAND_LINE and "pytest" not in sys.modules:
+if not __command_line_invocation__ and "pytest" not in sys.modules:
     warn_once_on_newer_keynote()

@@ -2,6 +2,7 @@
 """Unpack and repack Apple Keyote files."""
 
 __author__ = "Peter Sobot"
+__command_line_invocation__ = False
 
 from keynote_parser.versions import VERSIONS
 

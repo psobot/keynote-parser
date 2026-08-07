@@ -1,5 +1,5 @@
 # This workflow will install Python dependencies, run tests and lint with a variety of Python versions
-# For more information see: https://help.github.com/actions/language-and-framework-guides/using-python-with-github-actions
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python
 
 name: PyTest & Ruff
 
@@ -11,34 +11,46 @@ on:
 
 jobs:
   build:
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        python-version: ["3.10", "3.11", "3.12", "3.13"]
+        python-version: ["3.10", "3.11", "3.12", "3.13", "3.14"]
     steps:
-    - uses: actions/checkout@v2
+    - uses: actions/checkout@v4
     - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v2
+      uses: actions/setup-python@v5
       with:
         python-version: ${{ matrix.python-version }}
+        allow-prereleases: true
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+      with:
+        enable-cache: true
+    - name: Install system dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install -qq libsnappy-dev
+    - name: Install protoc
+      run: |
+        wget https://github.com/protocolbuffers/protobuf/releases/download/v28.3/protoc-28.3-linux-x86_64.zip
+        unzip protoc-28.3-linux-x86_64.zip -d protoc
+        echo "$PWD/protoc/bin" >> $GITHUB_PATH
     - name: Install dependencies
       run: |
-        pip install protobuf>=4
-        # protobuf 4 or later is necessary
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
-        unzip protoc-21.9-linux-x86_64.zip -d protoc
-        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
-        sudo apt-get install -qq libsnappy-dev
-        python -m pip install --upgrade pip
-        pip install ruff pytest rich 'protobuf>=3.20.0rc1,<4'
-        pip install -r requirements.txt
-      env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
-    - name: Build gencode
-      run: PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
+        uv pip install --system -e ".[dev]"
+    - name: Build package
+      run: make
     - name: Lint with ruff
-      run: ruff check .
+      run: |
+        ruff check . --exclude keynote_parser/generated
+    - name: Format check with ruff
+      run: |
+        ruff format --check . --exclude keynote_parser/generated
+    - name: Type check with pyright
+      run: |
+        uv pip install --system pyright
+        pyright keynote_parser --ignore keynote_parser/generated
     - name: Test with pytest
-      run: PYTHONPATH=$PYTHONPATH:$(pwd) pytest
+      run: |
+        export PYTHONPATH=$PYTHONPATH:$(pwd)
+        pytest --cov=keynote_parser
