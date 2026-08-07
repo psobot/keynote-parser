@@ -100,14 +100,57 @@ created by older versions of `keynote-parser`:
 
 As `keynote-parser` includes Protobuf definitions extracted from a copy of Keynote,
 new versions of Keynote will inevitably create `.key` files that cannot be read by `keynote-parser`.
-As new versions of Keynote are released, updates to `keynote-parser` can be made automatically
-by running the following on a macOS machine with Keynote installed:
+### Rebuilding the generated code
+
+The generated Protobuf code is not checked in, so a fresh clone needs to build it
+once before the tests will run:
 
 ```shell
-cd dumper
-make clean
-make
+python dumper/run.py
 ```
+
+This compiles the `.proto` files already in `protos/versions/` using a pinned
+copy of `protoc`, downloaded into `.protoc/` on first use. The pin matters: the
+generated code is only guaranteed to load under a `google.protobuf` at least as
+new as the `protoc` that produced it, so building with an arbitrary `protoc`
+from `$PATH` (Homebrew ships a very recent one) produces code that fails to
+import with:
+
+```
+google.protobuf.runtime_version.VersionError: Detected incompatible Protobuf
+Gencode/Runtime versions ... Runtime version cannot be older than the linked
+gencode version.
+```
+
+To use a specific `protoc` anyway, pass `--protoc /path/to/protoc`.
+
+### Adding support for a new version of Keynote
+
+As `keynote-parser` includes Protobuf definitions extracted from a copy of Keynote,
+new versions of Keynote will inevitably create `.key` files that cannot be read by `keynote-parser`.
+As new versions of Keynote are released, updates to `keynote-parser` can be made automatically
+by running the following on a macOS machine with the new Keynote installed:
+
+```shell
+python dumper/run.py --app-path /Applications/Keynote.app
+```
+
+This extracts the `.proto` files and message registry from the app bundle into
+`protos/versions/<version>/`, then compiles them as above. It requires a
+codesigning identity in Keychain Access (the app bundle has to be re-signed
+before its mapping can be read).
+
+Note that the extraction step depends on Protobuf internals that were removed in
+`protobuf` 4, so it must be run in an environment with `protobuf<4` installed —
+see the dependency header at the top of `dumper/run.py`, or run it with
+[uv](https://github.com/astral-sh/uv):
+
+```shell
+uv run --script dumper/run.py --app-path /Applications/Keynote.app
+```
+
+Recompiling the checked-in `.proto` files (the command in the previous section)
+has no such constraint and works with any supported `protobuf`.
 
 ## Troubleshooting
 
