@@ -1,7 +1,9 @@
+import base64
 import importlib
 import struct
 import sys
 import traceback
+import warnings
 from functools import partial
 
 import snappy
@@ -36,6 +38,88 @@ def import_version(version: str = LATEST_VERSION):
         mapping.NAME_CLASS_MAP,
         tsp_archive_messages_pb2.ArchiveInfo,
     )
+
+
+class UnknownArchiveWarning(UserWarning):
+    """Raised when an archive can't be decoded and is preserved verbatim instead.
+
+    This is a warning rather than an error so that a single unrecognised message
+    type - often in an incidental file like Index/CalculationEngine.iwa - doesn't
+    prevent the rest of a document from being read. To treat these as fatal:
+
+        warnings.simplefilter("error", keynote_parser.codec.UnknownArchiveWarning)
+    """
+
+
+# Documents can contain thousands of archives of the same unknown type; only
+# warn about each (file, type) pair once so the output stays readable.
+_WARNED_ABOUT = set()
+
+
+def _describe(klass):
+    """A short, human-readable name for a message class, for use in warnings."""
+    descriptor = getattr(klass, "DESCRIPTOR", None)
+    return (
+        getattr(descriptor, "full_name", None)
+        or getattr(klass, "__name__", None)
+        or repr(klass)
+    )
+
+
+def _warn_about_unknown_archive(message, filename, type_id):
+    key = (filename, type_id)
+    if key in _WARNED_ABOUT:
+        return
+    _WARNED_ABOUT.add(key)
+    if filename:
+        message = "%s (in %s)" % (message, filename)
+    warnings.warn(message, UnknownArchiveWarning, stacklevel=2)
+
+
+class UnknownArchive(object):
+    """An archive that could not be decoded, holding its original bytes.
+
+    Keynote documents are read and written whole, so an archive we can't
+    interpret still has to survive a pack/unpack cycle untouched. This holds the
+    raw payload and writes it back byte-for-byte, which keeps round-trips lossless
+    even though the contents aren't introspectable or replaceable.
+    """
+
+    # Deliberately not a real Protobuf type name, so it can't collide with an
+    # entry in NAME_CLASS_MAP.
+    PBTYPE = "keynote_parser.UnknownArchive"
+
+    def __init__(self, type_id, data):
+        self.type_id = type_id
+        self.data = data
+
+    def __eq__(self, other):
+        return (
+            isinstance(other, UnknownArchive)
+            and self.type_id == other.type_id
+            and self.data == other.data
+        )
+
+    def __repr__(self):
+        return "<%s type=%s length=%d>" % (
+            self.__class__.__name__,
+            self.type_id,
+            len(self.data),
+        )
+
+    def to_dict(self):
+        return {
+            "_pbtype": self.PBTYPE,
+            "type": self.type_id,
+            "base64Data": base64.b64encode(self.data).decode("ascii"),
+        }
+
+    @classmethod
+    def from_dict(cls, _dict):
+        return cls(int(_dict["type"]), base64.b64decode(_dict["base64Data"]))
+
+    def SerializeToString(self):
+        return self.data
 
 
 class IWAFile(object):
@@ -205,36 +289,53 @@ class IWAArchiveSegment(object):
 
         n = 0
         for message_info in archive_info.message_infos:
+            # message_info.length delimits this archive regardless of whether we
+            # can decode it, so an undecodable archive never desynchronises the
+            # ones that follow it.
+            message_payload = payload[n : n + message_info.length]
+            n += message_info.length
+
             try:
                 if message_info.type == 0 and archive_info.should_merge and payloads:
                     base_message = archive_info.message_infos[
                         message_info.base_message_index
                     ]
-                    klass = partial(
-                        ProtobufPatch.FromString,
-                        message_info,
-                        import_version(version)[0][base_message.type],
-                    )
+                    base_klass = import_version(version)[0][base_message.type]
+                    klass = partial(ProtobufPatch.FromString, message_info, base_klass)
+                    # `klass` is a functools.partial here, whose repr includes the
+                    # entire message_info; not something to put in a warning.
+                    description = "patch to %s" % _describe(base_klass)
                 else:
                     klass = import_version(version)[0][message_info.type]
+                    description = _describe(klass)
             except KeyError:
-                raise NotImplementedError(
-                    "Don't know how to parse Protobuf message type "
-                    + str(message_info.type)
+                _warn_about_unknown_archive(
+                    "Don't know how to parse Protobuf message type %s; "
+                    "preserving it verbatim. Slide content is unaffected unless "
+                    "it lives in this archive." % message_info.type,
+                    filename,
+                    message_info.type,
                 )
+                payloads.append(UnknownArchive(message_info.type, message_payload))
+                continue
+
             try:
-                message_payload = payload[n : n + message_info.length]
                 if hasattr(klass, "FromString"):
                     output = klass.FromString(message_payload)
                 else:
                     output = klass(message_payload)
             except Exception as e:
-                raise ValueError(
-                    "Failed to deserialize %s payload of length %d: %s"
-                    % (klass, message_info.length, e)
+                _warn_about_unknown_archive(
+                    "Failed to deserialize %s of length %d (%s: %s); "
+                    "preserving it verbatim."
+                    % (description, message_info.length, type(e).__name__, e),
+                    filename,
+                    message_info.type,
                 )
+                payloads.append(UnknownArchive(message_info.type, message_payload))
+                continue
+
             payloads.append(output)
-            n += message_info.length
 
         return cls(archive_info, payloads), payload[n:]
 
@@ -311,6 +412,8 @@ def _work_around_protobuf_max_float_handling(_dict):
 
 
 def dict_to_message(_dict, version: str = LATEST_VERSION):
+    if _dict.get("_pbtype") == UnknownArchive.PBTYPE:
+        return UnknownArchive.from_dict(_dict)
     _type = _dict["_pbtype"]
     del _dict["_pbtype"]
     _dict = _work_around_protobuf_max_float_handling(_dict)
