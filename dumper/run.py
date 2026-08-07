@@ -14,9 +14,12 @@ import glob
 import logging
 import os
 import plistlib
+import platform
 import shutil
 import subprocess
 import tempfile
+import urllib.request
+import zipfile
 from contextlib import contextmanager
 from typing import Generator
 
@@ -24,9 +27,13 @@ from rich.logging import RichHandler
 
 from dumper.extract_mapping import extract_mapping
 from dumper.generate_mapping import generate_mapping
-from dumper.protodump import extract_proto_files
 from dumper.rename_proto_files import rename_proto_files
 from dumper.rewrite_imports import rewrite_imports
+
+# NOTE: dumper.protodump is imported lazily, inside the --app-path branch. It
+# depends on private Protobuf APIs that only exist in protobuf<4, and importing
+# it at module scope would make the far more common "just recompile the
+# checked-in .proto files" path fail on a modern protobuf too.
 
 logging.basicConfig(
     level="NOTSET",
@@ -34,6 +41,56 @@ logging.basicConfig(
     datefmt="[%X]",
     handlers=[RichHandler(markup=True)],
 )
+
+# The generated code we ship is tied to the protoc that produced it: protoc 25
+# and newer embed a runtime version check that refuses to load under an older
+# google.protobuf than the one they were built against. Pinning protoc here
+# keeps `protobuf>=3.13.0` an honest floor for end users, and stops whichever
+# protoc happens to be on $PATH (Homebrew ships a very new one) from silently
+# producing gencode that the installed protobuf can't import.
+PROTOC_VERSION = "21.9"
+
+PROTOC_PLATFORMS = {
+    ("Darwin", "arm64"): "osx-aarch_64",
+    ("Darwin", "x86_64"): "osx-x86_64",
+    ("Linux", "aarch64"): "linux-aarch_64",
+    ("Linux", "x86_64"): "linux-x86_64",
+}
+
+
+def vendored_protoc(repo_root_directory: str) -> str:
+    """Return a path to the pinned protoc, downloading it if necessary.
+
+    Deliberately does not fall back to a protoc on $PATH: an unpinned protoc is
+    how you end up with gencode that imports fine on the machine that built it
+    and nowhere else.
+    """
+    protoc_directory = os.path.join(repo_root_directory, ".protoc", PROTOC_VERSION)
+    protoc_path = os.path.join(protoc_directory, "bin", "protoc")
+    if os.path.exists(protoc_path):
+        return protoc_path
+
+    key = (platform.system(), platform.machine())
+    if key not in PROTOC_PLATFORMS:
+        raise RuntimeError(
+            f"No pinned protoc {PROTOC_VERSION} build is known for {key}. Install "
+            f"protoc {PROTOC_VERSION} manually and pass --protoc."
+        )
+
+    url = (
+        "https://github.com/protocolbuffers/protobuf/releases/download/"
+        f"v{PROTOC_VERSION}/protoc-{PROTOC_VERSION}-{PROTOC_PLATFORMS[key]}.zip"
+    )
+    logging.info(f"Downloading protoc {PROTOC_VERSION} from {url}...")
+    os.makedirs(protoc_directory, exist_ok=True)
+    with tempfile.NamedTemporaryFile(suffix=".zip") as archive:
+        with urllib.request.urlopen(url) as response:
+            shutil.copyfileobj(response, archive)
+        archive.flush()
+        with zipfile.ZipFile(archive.name) as zf:
+            zf.extractall(protoc_directory)
+    os.chmod(protoc_path, 0o755)
+    return protoc_path
 
 
 @contextmanager
@@ -92,12 +149,28 @@ def main():
         default=None,
         help="Path to the .app bundle. If not provided, only the proto compilation step will be done.",
     )
+    parser.add_argument(
+        "--protoc",
+        type=str,
+        default=None,
+        help=(
+            f"Path to protoc. Defaults to a pinned protoc {PROTOC_VERSION}, "
+            "downloaded into .protoc/ if not already present."
+        ),
+    )
     args = parser.parse_args()
 
     repo_root_directory = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    protoc = args.protoc or vendored_protoc(repo_root_directory)
+    logging.info(f"Using protoc: {protoc}")
 
     if args.app_path:
         logging.info(f"Running dumper on {args.app_path}...")
+
+        # Imported here rather than at module scope: protodump depends on
+        # private Protobuf APIs that were removed in protobuf 4, so importing it
+        # would break the compile-only path on a modern protobuf.
+        from dumper.protodump import extract_proto_files
 
         # Step 0: Get the version of the app to use as the output directory name.
         version_plist = plistlib.load(
@@ -159,13 +232,14 @@ def main():
         os.makedirs(gencode_proto_output_directory, exist_ok=True)
         subprocess.run(
             [
-                "protoc",
+                protoc,
                 "--proto_path",
                 version_directory,
                 "--python_out",
                 gencode_proto_output_directory,
             ]
             + glob.glob(os.path.join(version_directory, "*.proto")),
+            check=True,
         )
         # Step 6: Touch init.py in the generated code directory.
         open(os.path.join(gencode_proto_output_directory, "__init__.py"), "w").close()
