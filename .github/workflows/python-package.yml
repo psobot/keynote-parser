@@ -32,7 +32,7 @@ jobs:
         echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         python -m pip install --upgrade pip
-        pip install ruff pytest rich 'protobuf>=3.20.0rc1,<4'
+        pip install "ruff==0.16.2" pytest rich 'protobuf>=3.20.0rc1,<4'
         pip install -r requirements.txt
       env:
         ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
