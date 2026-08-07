@@ -11,8 +11,6 @@ on:
 
 jobs:
   build:
-    env:
-      ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     runs-on: ubuntu-latest
     strategy:
       matrix:
@@ -25,18 +23,13 @@ jobs:
         python-version: ${{ matrix.python-version }}
     - name: Install dependencies
       run: |
-        pip install protobuf>=4
-        # protobuf 4 or later is necessary
-        wget https://github.com/protocolbuffers/protobuf/releases/download/v21.9/protoc-21.9-linux-x86_64.zip
-        unzip protoc-21.9-linux-x86_64.zip -d protoc
-        echo "::set-env name=PATH::$PATH:$PWD/protoc/bin/"
         sudo apt-get install -qq libsnappy-dev
         python -m pip install --upgrade pip
-        pip install "ruff==0.16.2" pytest rich 'protobuf>=3.20.0rc1,<4'
+        pip install "ruff==0.16.2" pytest rich
         pip install -r requirements.txt
-      env:
-        ACTIONS_ALLOW_UNSECURE_COMMANDS: 'true'
     - name: Build gencode
+      # protoc is pinned and downloaded by dumper/run.py itself, so CI and local
+      # builds produce identical generated code.
       run: PYTHONPATH=$PYTHONPATH:$(pwd) python3 dumper/run.py
     - name: Lint with ruff
       run: ruff check .
