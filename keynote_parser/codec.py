@@ -56,6 +56,16 @@ class UnknownArchiveWarning(UserWarning):
 _WARNED_ABOUT = set()
 
 
+def _describe(klass):
+    """A short, human-readable name for a message class, for use in warnings."""
+    descriptor = getattr(klass, "DESCRIPTOR", None)
+    return (
+        getattr(descriptor, "full_name", None)
+        or getattr(klass, "__name__", None)
+        or repr(klass)
+    )
+
+
 def _warn_about_unknown_archive(message, filename, type_id):
     key = (filename, type_id)
     if key in _WARNED_ABOUT:
@@ -290,13 +300,14 @@ class IWAArchiveSegment(object):
                     base_message = archive_info.message_infos[
                         message_info.base_message_index
                     ]
-                    klass = partial(
-                        ProtobufPatch.FromString,
-                        message_info,
-                        import_version(version)[0][base_message.type],
-                    )
+                    base_klass = import_version(version)[0][base_message.type]
+                    klass = partial(ProtobufPatch.FromString, message_info, base_klass)
+                    # `klass` is a functools.partial here, whose repr includes the
+                    # entire message_info; not something to put in a warning.
+                    description = "patch to %s" % _describe(base_klass)
                 else:
                     klass = import_version(version)[0][message_info.type]
+                    description = _describe(klass)
             except KeyError:
                 _warn_about_unknown_archive(
                     "Don't know how to parse Protobuf message type %s; "
@@ -315,8 +326,9 @@ class IWAArchiveSegment(object):
                     output = klass(message_payload)
             except Exception as e:
                 _warn_about_unknown_archive(
-                    "Failed to deserialize %s payload of length %d (%s); "
-                    "preserving it verbatim." % (klass, message_info.length, e),
+                    "Failed to deserialize %s of length %d (%s: %s); "
+                    "preserving it verbatim."
+                    % (description, message_info.length, type(e).__name__, e),
                     filename,
                     message_info.type,
                 )
