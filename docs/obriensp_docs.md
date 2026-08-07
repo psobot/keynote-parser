@@ -57,13 +57,13 @@ The uncompresed IWA contains the Component's objects, serialized consecutively i
 	Object 0	varint archiveInfoLength
 				ArchiveInfo archiveInfo
 				(payload)
-				
+
 	Object 1	varint archiveInfoLength
 				ArchiveInfo archiveInfo
 				(payload)
-				
+
 				...
-					
+
 	Object n	varint archiveInfoLength
 				ArchiveInfo archiveInfo
 				(payload)
@@ -100,7 +100,7 @@ A full dump of the Protobuf messages can be found [here](../iWorkFileInspector/i
 ### <a name="tspregistry" />TSPRegistry
 The mapping between an object's `MessageInfo.type` and its respective Protobuf message type must by extracted from the iWork applications at runtime. Attaching to Keynote via a debugger and inspecting `[TSPRegistry sharedRegistry]` shows:
 
-	<TSPRegistry 0x102daf560 
+	<TSPRegistry 0x102daf560
 	 _messageTypeToPrototypeMap = {
 		148 -> 0x102f24680 KN.ChartInfoGeometryCommandArchive
 		147 -> 0x102f24650 KN.SlideCollectionCommandSelectionBehaviorArchive
