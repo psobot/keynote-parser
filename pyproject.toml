@@ -50,6 +50,19 @@ version = { attr = "keynote_parser.__version__" }
 [tool.setuptools.packages.find]
 exclude = ["contrib*", "docs*", "tests*", "protos*"]
 
+[tool.ruff]
+# Pinned in CI as well: ruff's default rule set has grown over time, and an
+# unpinned ruff plus implicit defaults means the lint gate changes underneath
+# the repo without anyone editing it. Everything selected here is a rule the
+# codebase currently passes; broadening this set is a deliberate act.
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F"]
+
+[tool.ruff.lint.per-file-ignores]
+"keynote_parser/versions/*/generated/*" = ["ALL"]
+
 [tool.coverage.run]
 omit = ["keynote_parser/versions/*"]
 

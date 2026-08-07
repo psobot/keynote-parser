@@ -6,6 +6,9 @@ __pycache__/
 *$py.class
 keynote_parser/versions/v*/generated/
 
+# Pinned protoc, downloaded on demand by dumper/run.py
+.protoc/
+
 # C extensions
 *.so
 
