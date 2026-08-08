@@ -6,7 +6,7 @@ __author__ = "Peter Sobot"
 from keynote_parser.versions import VERSIONS
 
 __major_version__ = 1
-__patch_version__ = 2
+__patch_version__ = 0
 
 __supported_keynote_version__ = max(VERSIONS)
 __version_tuple__ = (
