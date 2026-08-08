@@ -8,6 +8,7 @@ from functools import partial
 
 import snappy
 import yaml
+from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -254,7 +255,13 @@ class ProtobufPatch(object):
                 "Message info was:\n%s\nObject was:\n%s" % (message_info, data)
             )
         for diff_path in message_info.diff_field_path.path:
-            patched_field = proto_klass.DESCRIPTOR.fields_by_number[diff_path]
+            if diff_path in proto_klass.DESCRIPTOR.fields_by_number:
+                patched_field = proto_klass.DESCRIPTOR.fields_by_number[diff_path]
+            else:
+                # Extension fields (proto2 `extend` blocks) are not in fields_by_number
+                patched_field = _descriptor_pool.Default().FindExtensionByNumber(
+                    proto_klass.DESCRIPTOR, diff_path
+                )
             field_message_class = import_version(version)[1][
                 patched_field.message_type.full_name
             ]
