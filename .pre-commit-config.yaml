@@ -1,0 +1,33 @@
+# The .iwa and .key fixtures under tests/data/ are binary, but `identify` sees
+# no NUL bytes near the start of some of them and classifies them as text. The
+# whitespace hooks then "fix" them: trailing-whitespace strips any 0x09 that
+# happens to precede a 0x0a, which inside a Snappy stream or an embedded JPEG is
+# just data. That silently corrupts the archive, and the only symptom is
+# zipfile.BadZipFile in an unrelated test run later.
+#
+# Excluding the whole directory rather than a *.key glob is deliberate: the .iwa
+# files have the same problem, and the .yaml fixtures are byte-compared by
+# tests/test_codec.py, so reflowing them would be just as damaging.
+exclude: ^tests/data/
+
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+      - id: check-merge-conflict
+      - id: debug-statements
+
+  # Kept in lockstep with the ruff pinned in .github/workflows/python-package.yml.
+  # If these drift, the hook and CI disagree about what passes, which is how the
+  # lint gate silently stopped meaning anything the last time round.
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.16.2
+    hooks:
+      - id: ruff-check
+        args: [--fix, --exit-non-zero-on-fix]
+      - id: ruff-format
