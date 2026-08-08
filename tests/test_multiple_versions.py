@@ -25,6 +25,23 @@ SIMPLE_FILENAME = "./tests/data/simple-oneslide.iwa"
 ALL_VERSIONS = [version.short_version_string for version in VERSIONS]
 
 
+def _type_id_in_every_version():
+    """A TSP type id every bundled version knows about.
+
+    Older Keynote versions genuinely lack types that later ones added, so
+    hardcoding an id here breaks as soon as an older version is bundled.
+    """
+    common = None
+    for version in ALL_VERSIONS:
+        ids = set(codec.import_version(version)[0])
+        common = ids if common is None else common & ids
+    assert common, "bundled versions share no type ids at all"
+    return min(common)
+
+
+SHARED_TYPE_ID = _type_id_in_every_version()
+
+
 def test_more_than_one_version_is_bundled():
     assert len(ALL_VERSIONS) >= 2, (
         "these tests only mean anything with two or more versions bundled; "
@@ -41,7 +58,7 @@ def test_every_bundled_version_imports(version):
 def test_versions_do_not_share_a_descriptor_pool():
     pools = {}
     for version in ALL_VERSIONS:
-        klass = codec.import_version(version)[0][6383]
+        klass = codec.import_version(version)[0][SHARED_TYPE_ID]
         pools[version] = klass.DESCRIPTOR.file.pool
 
     distinct = {id(pool) for pool in pools.values()}
@@ -52,8 +69,8 @@ def test_versions_do_not_share_a_descriptor_pool():
 
 def test_versions_yield_distinct_message_classes():
     for a, b in itertools.combinations(ALL_VERSIONS, 2):
-        klass_a = codec.import_version(a)[0][6383]
-        klass_b = codec.import_version(b)[0][6383]
+        klass_a = codec.import_version(a)[0][SHARED_TYPE_ID]
+        klass_b = codec.import_version(b)[0][SHARED_TYPE_ID]
         # Same protobuf type name, different generated class per version.
         assert klass_a.DESCRIPTOR.full_name == klass_b.DESCRIPTOR.full_name
         assert klass_a is not klass_b
@@ -61,6 +78,8 @@ def test_versions_yield_distinct_message_classes():
 
 @pytest.mark.parametrize("version", ALL_VERSIONS)
 def test_extension_fields_resolve_within_each_version(version):
+    if "TSCH.ChartDrawableArchive" not in codec.import_version(version)[1]:
+        pytest.skip(f"Keynote {version} predates TSCH.ChartDrawableArchive")
     # The #54 chart fix looks extensions up in a descriptor pool. With private
     # pools it must consult the pool the class was built in, not the default
     # one - which now contains none of these.

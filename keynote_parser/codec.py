@@ -128,16 +128,18 @@ class IWAFile(object):
         self.filename = filename
 
     @classmethod
-    def from_file(cls, filename):
-        with open(filename) as f:
-            return cls.from_buffer(f.read(), filename)
+    def from_file(cls, filename, version: str = LATEST_VERSION):
+        with open(filename, "rb") as f:
+            return cls.from_buffer(f.read(), filename, version=version)
 
     @classmethod
-    def from_buffer(cls, data, filename=None):
+    def from_buffer(cls, data, filename=None, version: str = LATEST_VERSION):
         try:
             chunks = []
             while data:
-                chunk, data = IWACompressedChunk.from_buffer(data, filename)
+                chunk, data = IWACompressedChunk.from_buffer(
+                    data, filename, version=version
+                )
                 chunks.append(chunk)
 
             return cls(chunks, filename)
@@ -148,8 +150,13 @@ class IWAFile(object):
                 raise
 
     @classmethod
-    def from_dict(cls, _dict):
-        return cls([IWACompressedChunk.from_dict(chunk) for chunk in _dict["chunks"]])
+    def from_dict(cls, _dict, version: str = LATEST_VERSION):
+        return cls(
+            [
+                IWACompressedChunk.from_dict(chunk, version=version)
+                for chunk in _dict["chunks"]
+            ]
+        )
 
     def to_dict(self):
         try:
@@ -199,17 +206,21 @@ class IWACompressedChunk(object):
                 yield chunk
 
     @classmethod
-    def from_buffer(cls, data, filename=None):
+    def from_buffer(cls, data, filename=None, version: str = LATEST_VERSION):
         data = b"".join(cls._decompress_all(data))
         archives = []
         while data:
-            archive, data = IWAArchiveSegment.from_buffer(data, filename)
+            archive, data = IWAArchiveSegment.from_buffer(
+                data, filename, version=version
+            )
             archives.append(archive)
         return cls(archives), None
 
     @classmethod
-    def from_dict(cls, _dict):
-        return cls([IWAArchiveSegment.from_dict(d) for d in _dict["archives"]])
+    def from_dict(cls, _dict, version: str = LATEST_VERSION):
+        return cls(
+            [IWAArchiveSegment.from_dict(d, version=version) for d in _dict["archives"]]
+        )
 
     def to_dict(self):
         return {"archives": [archive.to_dict() for archive in self.archives]}
@@ -350,7 +361,7 @@ class IWAArchiveSegment(object):
 
     @classmethod
     def from_dict(cls, _dict, version: str = LATEST_VERSION):
-        header = dict_to_header(_dict["header"])
+        header = dict_to_header(_dict["header"], version=version)
         objects = []
         for message_info, o in zip(header.message_infos, _dict["objects"]):
             if message_info.diff_field_path and "_pbtype" not in o:
@@ -360,7 +371,7 @@ class IWAArchiveSegment(object):
                 message_class = import_version(version)[0][base_message_info.type]
                 objects.append(ProtobufPatch(message_class, o))
             else:
-                objects.append(dict_to_message(o))
+                objects.append(dict_to_message(o, version=version))
         return cls(header, objects)
 
     def to_dict(self):
@@ -431,11 +442,11 @@ def dict_to_message(_dict, version: str = LATEST_VERSION):
     )
 
 
-def dict_to_header(_dict):
+def dict_to_header(_dict, version: str = LATEST_VERSION):
     for message_info in _dict["messageInfos"]:
         # set a dummy length value that we'll overwrite later
         message_info["length"] = 0
-    return dict_to_message(_dict)
+    return dict_to_message(_dict, version=version)
 
 
 def get_archive_info_and_remainder(buf, version: str = LATEST_VERSION):

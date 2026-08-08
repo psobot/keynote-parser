@@ -1,0 +1,23 @@
+syntax = "proto2";
+
+import "TSACommandArchives_sos.proto";
+import "TSKArchives.proto";
+import "TSPMessages.proto";
+package KNSOS;
+
+message InducedVerifyDocumentWithServerCommandArchive {
+  required .TSK.CommandArchive super = 1;
+  repeated .TSP.UUID slide_node_id_list = 2;
+  optional bool slide_node_id_list_undefined = 3;
+  repeated .TSP.UUID template_slide_node_id_list = 4;
+  optional bool template_slide_node_id_list_undefined = 5;
+}
+
+message InducedVerifyDrawableZOrdersWithServerCommandArchive {
+  required .TSASOS.InducedVerifyDrawableZOrdersWithServerCommandArchive super = 1;
+}
+
+message CommandSlideReapplyTemplateSlideArchive {
+  required .TSASOS.CommandReapplyMasterArchive super = 1;
+}
+
