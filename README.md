@@ -127,30 +127,45 @@ To use a specific `protoc` anyway, pass `--protoc /path/to/protoc`.
 ### Adding support for a new version of Keynote
 
 As `keynote-parser` includes Protobuf definitions extracted from a copy of Keynote,
-new versions of Keynote will inevitably create `.key` files that cannot be read by `keynote-parser`.
-As new versions of Keynote are released, updates to `keynote-parser` can be made automatically
-by running the following on a macOS machine with the new Keynote installed:
+new versions of Keynote will inevitably create `.key` files that cannot be read by
+`keynote-parser`. When a new version of Keynote is installed, run the following on
+that macOS machine to regenerate the mappings and compiled Protobuf files:
 
 ```shell
-python dumper/run.py --app-path /Applications/Keynote.app
+PYTHONPATH=$PYTHONPATH:$(pwd) uv run \
+  --python /opt/homebrew/bin/python3 \
+  --with rich --with 'protobuf>=3.20.0rc1,<4' \
+  python dumper/run.py --app-path "/Applications/Keynote.app"
 ```
 
 This extracts the `.proto` files and message registry from the app bundle into
-`protos/versions/<version>/`, then compiles them as above. It requires a
-codesigning identity in Keychain Access (the app bundle has to be re-signed
-before its mapping can be read).
+`protos/versions/<version>/`, then compiles them as in the previous section.
 
-Note that the extraction step depends on Protobuf internals that were removed in
-`protobuf` 4, so it must be run in an environment with `protobuf<4` installed —
-see the dependency header at the top of `dumper/run.py`, or run it with
-[uv](https://github.com/astral-sh/uv):
+**Prerequisites:**
+- macOS with the new version of Keynote installed
+- [Homebrew](https://brew.sh) Python: `brew install python@3.13`
+- [LLVM/LLDB](https://llvm.org) matching that Python version: `brew install llvm`
 
-```shell
-uv run --script dumper/run.py --app-path /Applications/Keynote.app
-```
+`protoc` is *not* a prerequisite: it is pinned and downloaded automatically, as
+described above.
 
-Recompiling the checked-in `.proto` files (the command in the previous section)
-has no such constraint and works with any supported `protobuf`.
+**Notes:**
+- The interpreter matters. `dumper/extract_mapping.py` locates LLDB's Python
+  bindings by matching the running interpreter's version against the installed
+  LLVM, so `uv`'s bundled Python will fail to find them. Hence the explicit
+  `--python /opt/homebrew/bin/python3`.
+- `protobuf<4` is required for this step only. `dumper/protodump.py` uses Protobuf
+  internals that were removed in version 4; it is imported lazily, so recompiling
+  the checked-in protos (previous section) works with any supported `protobuf`.
+- The app path may differ depending on the Keynote version installed
+  (e.g. `/Applications/Keynote 2025.app`). Check your `/Applications` folder.
+- The script briefly launches Keynote under the debugger to extract the type
+  registry. Keynote may appear on screen momentarily — this is expected.
+- No codesigning certificate is required: the script uses a local signing identity
+  if one is available and falls back to ad-hoc signing (`-`) otherwise.
+- The generated files (`keynote_parser/versions/v*/generated/`) are not committed
+  to the repository and must be regenerated locally after cloning.
+
 
 ## Troubleshooting
 
