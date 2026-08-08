@@ -28,6 +28,10 @@ from rich.logging import RichHandler
 from dumper.extract_mapping import extract_mapping
 from dumper.generate_mapping import generate_mapping
 from dumper.rename_proto_files import rename_proto_files
+from dumper.rewrite_descriptor_pool import (
+    rewrite_descriptor_pool,
+    write_pool_module,
+)
 from dumper.rewrite_imports import rewrite_imports
 
 # NOTE: dumper.protodump is imported lazily, inside the --app-path branch. It
@@ -244,9 +248,21 @@ def main():
         open(os.path.join(gencode_proto_output_directory, "__init__.py"), "w").close()
 
         # Step 7: Rewrite the imports in the generated code.
+        package_prefix = (
+            f"keynote_parser.versions.{python_identifier_version}.generated"
+        )
         rewrite_imports(
             glob.glob(os.path.join(gencode_proto_output_directory, "*.py")),
-            f"keynote_parser.versions.{python_identifier_version}.generated",
+            package_prefix,
+        )
+
+        # Step 8: Give this version its own descriptor pool. Without this every
+        # version registers the same .proto filenames into the global default
+        # pool, so importing a second version fails with "duplicate file name".
+        write_pool_module(gencode_proto_output_directory)
+        rewrite_descriptor_pool(
+            glob.glob(os.path.join(gencode_proto_output_directory, "*.py")),
+            package_prefix,
         )
 
         logging.info(f"Dumped {version} to {gencode_proto_output_directory}.")

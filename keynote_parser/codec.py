@@ -8,7 +8,6 @@ from functools import partial
 
 import snappy
 import yaml
-from google.protobuf import descriptor_pool as _descriptor_pool
 from google.protobuf.internal.decoder import _DecodeVarint32
 from google.protobuf.internal.encoder import _VarintBytes
 from google.protobuf.json_format import MessageToDict, ParseDict
@@ -258,8 +257,11 @@ class ProtobufPatch(object):
             if diff_path in proto_klass.DESCRIPTOR.fields_by_number:
                 patched_field = proto_klass.DESCRIPTOR.fields_by_number[diff_path]
             else:
-                # Extension fields (proto2 `extend` blocks) are not in fields_by_number
-                patched_field = _descriptor_pool.Default().FindExtensionByNumber(
+                # Extension fields (proto2 `extend` blocks) are not in
+                # fields_by_number. Look them up in the pool this class was
+                # actually built in: each bundled version now has its own, so
+                # the default pool no longer contains any of them.
+                patched_field = proto_klass.DESCRIPTOR.file.pool.FindExtensionByNumber(
                     proto_klass.DESCRIPTOR, diff_path
                 )
             field_message_class = import_version(version)[1][
