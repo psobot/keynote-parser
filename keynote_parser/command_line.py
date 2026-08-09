@@ -6,8 +6,16 @@ from collections import Counter
 from keynote_parser import __supported_keynote_version__, __version__
 
 from .bundle_utils import get_installed_keynote_version, warn_once_on_newer_keynote
+from .codec import LATEST_VERSION
 from .file_utils import process
 from .replacement import Replacement, parse_json
+from .versions import VERSIONS
+
+SUPPORTED_VERSIONS = sorted(v.short_version_string for v in VERSIONS)
+
+
+def parse_version(**kwargs):
+    return kwargs.get("keynote_version") or LATEST_VERSION
 
 
 def parse_replacements(**kwargs):
@@ -23,12 +31,16 @@ def unpack_command(input, output=None, **kwargs):
         input,
         output or input.replace(".key", ""),
         replacements=parse_replacements(**kwargs),
+        version=parse_version(**kwargs),
     )
 
 
 def pack_command(input, output=None, **kwargs):
     process(
-        input, output or (input + ".key"), replacements=parse_replacements(**kwargs)
+        input,
+        output or (input + ".key"),
+        replacements=parse_replacements(**kwargs),
+        version=parse_version(**kwargs),
     )
 
 
@@ -43,6 +55,7 @@ def cat_command(input, filename, **kwargs):
         subfile=filename,
         replacements=parse_replacements(**kwargs),
         raw=kwargs.get("raw"),
+        version=parse_version(**kwargs),
     )
 
 
@@ -56,7 +69,9 @@ def replace_command(input, **kwargs):
         print("WARNING: No replacements passed. No change.")
         return
     for (old, new), count in list(
-        Counter(process(input, output, replacements)).items()
+        Counter(
+            process(input, output, replacements, version=parse_version(**kwargs))
+        ).items()
     ):
         if count == 1:
             print("Replaced %s with %s." % (repr(old), repr(new)))
@@ -67,6 +82,21 @@ def replace_command(input, **kwargs):
 def add_replacement_arg(parser):
     parser.add_argument(
         "--replacements", help="apply replacements from a json or yaml file"
+    )
+
+
+def add_version_arg(parser):
+    parser.add_argument(
+        "--keynote-version",
+        choices=SUPPORTED_VERSIONS,
+        default=None,
+        help=(
+            "read and write using the Protobuf schemas of a specific Keynote "
+            "version, rather than the newest bundled one (%s). Message names "
+            "changed between releases, so this is what lets newer "
+            "keynote-parser read .yaml written by an older one, and vice versa."
+            % LATEST_VERSION
+        ),
     )
 
 
@@ -91,6 +121,7 @@ def main():
     parser_unpack.add_argument("input", help="a .key file")
     parser_unpack.add_argument("--output", "-o", help="a directory name to unpack into")
     add_replacement_arg(parser_unpack)
+    add_version_arg(parser_unpack)
     parser_unpack.set_defaults(func=unpack_command)
 
     parser_pack = subparsers.add_parser("pack")
@@ -99,6 +130,7 @@ def main():
         "--output", "-o", help="a keynote file name to unpack into"
     )
     add_replacement_arg(parser_pack)
+    add_version_arg(parser_pack)
     parser_pack.set_defaults(func=pack_command)
 
     parser_ls = subparsers.add_parser("ls")
@@ -116,6 +148,7 @@ def main():
         help="always return the original file with no decoding",
     )
     add_replacement_arg(parser_cat)
+    add_version_arg(parser_cat)
     parser_cat.set_defaults(func=cat_command)
 
     parser_replace = subparsers.add_parser("replace")
@@ -124,6 +157,7 @@ def main():
     parser_replace.add_argument("--find", help="a pattern to search for in text")
     parser_replace.add_argument("--replace", help="a string to replace with")
     add_replacement_arg(parser_replace)
+    add_version_arg(parser_replace)
     parser_replace.set_defaults(func=replace_command)
 
     args = parser.parse_args()

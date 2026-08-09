@@ -19,7 +19,7 @@ from glob import glob
 from tqdm import tqdm
 from zipfile import ZipFile
 
-from .codec import IWAFile
+from .codec import LATEST_VERSION, IWAFile
 from .unicode_utils import fix_unicode
 
 
@@ -207,7 +207,15 @@ def zip_file_sink(output_path):
                 zipfile.writestr(filename, contents)
 
 
-def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=None):
+def process_file(
+    filename,
+    handle,
+    sink,
+    replacements=[],
+    raw=False,
+    on_replace=None,
+    version=LATEST_VERSION,
+):
     contents = None
     if ".iwa" in filename and not raw:
         if not getattr(sink, "needs_iwa_contents", True):
@@ -219,11 +227,12 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
         contents = handle.read()
         if filename.endswith(".yaml"):
             file = IWAFile.from_dict(
-                yaml.load(fix_unicode(contents.decode("utf-8")), Loader=Loader)
+                yaml.load(fix_unicode(contents.decode("utf-8")), Loader=Loader),
+                version=version,
             )
             filename = filename.replace(".yaml", "")
         else:
-            file = IWAFile.from_buffer(contents, filename)
+            file = IWAFile.from_buffer(contents, filename, version=version)
 
         file_has_changed = False
         for replacement in replacements:
@@ -238,7 +247,7 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
             for replacement in replacements:
                 data = replacement.perform_on(data, on_replace=on_replace)
             if getattr(sink, "needs_iwa_object", True):
-                sink(filename, IWAFile.from_dict(data))
+                sink(filename, IWAFile.from_dict(data, version=version))
             else:
                 # A YAML sink is about to call to_dict() on whatever it is
                 # given, so rebuilding an IWAFile from this dict only to take
@@ -273,7 +282,14 @@ def process_file(filename, handle, sink, replacements=[], raw=False, on_replace=
     sink(filename, contents or handle.read())
 
 
-def process(input_path, output_path, replacements=[], subfile=None, raw=False):
+def process(
+    input_path,
+    output_path,
+    replacements=[],
+    subfile=None,
+    raw=False,
+    version=LATEST_VERSION,
+):
     completed_replacements = []
 
     def on_replace(replacement, old, new):
@@ -284,7 +300,9 @@ def process(input_path, output_path, replacements=[], subfile=None, raw=False):
             print("Reading from %s..." % input_path)
         for filename, handle in file_reader(input_path, not sink.uses_stdout):
             try:
-                process_file(filename, handle, sink, replacements, raw, on_replace)
+                process_file(
+                    filename, handle, sink, replacements, raw, on_replace, version
+                )
             except Exception as e:
                 raise ValueError("Failed to process file %s due to: %s" % (filename, e))
 

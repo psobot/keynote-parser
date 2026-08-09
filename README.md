@@ -81,20 +81,26 @@ sizes of the target image.
 
 ### Compatibility
 
-Note that between Keynote 10.2 and Keynote 11.2, a number of Protobuf definitions
-used by Keynote have changed names. `keynote-parser` does not yet support
-backwards compatibility: it can only read `.key` files as the
-currently-supported Keynote version would, and will write `.yaml` output with
-keys that match the current names of the keys. This means that **`.yaml` files
-generated with older versions of `keynote-parser` may not be readable by with
-v1.11.2.1 or higher of `keynote-parser`**.
+`keynote-parser` bundles the Protobuf schemas of several Keynote versions, and
+by default reads and writes using the newest one it has. That matters because
+Apple renamed a number of message types between releases - most visibly the
+`Master` to `Template` rename between Keynote 10.2 and 11.2 (24 types), and a
+`TSK` to `TSCK` move between 13.1 and 14.4 (36 types). A `.yaml` file written
+by an older `keynote-parser` therefore names types that the current schemas no
+longer contain.
 
-Until this issue is fixed (_if_ it's ever fixed) - to properly read `.yaml` files
-created by older versions of `keynote-parser`:
- - use an older version of `keynote-parser` to read the file
- - write a `.key` (or `.iwa`) file with that older version
- - upgrade `keynote-parser`
- - read that resulting `.iwa` file in the newer version of `keynote-parser`
+Pass `--keynote-version` to read or write using a specific version's schemas:
+
+```bash
+# Read a .yaml written by a much older keynote-parser
+keynote-parser pack ./MyPresentation/ --keynote-version 10.2
+
+# Produce .yaml using an older version's type names
+keynote-parser unpack MyPresentation.key --keynote-version 10.2
+```
+
+`--keynote-version` is accepted by `unpack`, `pack`, `cat` and `replace`. Run
+`keynote-parser unpack --help` to see the bundled versions.
 
 ## Updates
 
