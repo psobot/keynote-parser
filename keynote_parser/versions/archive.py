@@ -31,7 +31,11 @@ import threading
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
 
-ARCHIVE_FILENAME = "descriptors.bin"
+# ".kpda" - Keynote Parser Descriptor Archive - rather than a generic ".bin",
+# and deliberately not ".xz": this is a container with its own header, not a
+# bare LZMA stream, so naming it after the compressor would mislead anyone who
+# tried to decompress it directly. The extension matches the magic bytes below.
+ARCHIVE_FILENAME = "protobuf_schemas.kpda"
 ARCHIVE_PATH = os.path.join(os.path.dirname(__file__), ARCHIVE_FILENAME)
 
 # The archive stores a compressed JSON header followed by the compressed blob.
