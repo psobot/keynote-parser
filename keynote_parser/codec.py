@@ -14,10 +14,14 @@ from google.protobuf.json_format import MessageToDict, ParseDict
 from google.protobuf.message import EncodeError
 
 from keynote_parser.versions import LATEST_VERSION as LATEST_VERSION_OBJECT
+from keynote_parser.versions import archive as descriptor_archive
 
 LATEST_VERSION = LATEST_VERSION_OBJECT.short_version_string
 
 MAX_FLOAT = 340282346638528859811704183484516925440.000000000000000000
+
+
+ARCHIVE_INFO_MESSAGE = "TSP.ArchiveInfo"
 
 
 def import_version(version: str = LATEST_VERSION):
@@ -28,15 +32,15 @@ def import_version(version: str = LATEST_VERSION):
     except ImportError:
         raise KeyError(f"Mapping for version {version} not found.")
     try:
-        tsp_archive_messages_pb2 = importlib.import_module(
-            f"keynote_parser.versions.v{version.replace('.', '_')}.generated.TSPArchiveMessages_pb2"
+        archive_info = descriptor_archive.message_class(version, ARCHIVE_INFO_MESSAGE)
+    except KeyError:
+        raise KeyError(
+            f"{ARCHIVE_INFO_MESSAGE} not found in the schemas for version {version}."
         )
-    except ImportError:
-        raise KeyError(f"Archive for version {version} not found.")
     return (
         mapping.ID_NAME_MAP,
         mapping.NAME_CLASS_MAP,
-        tsp_archive_messages_pb2.ArchiveInfo,
+        archive_info,
     )
 
 

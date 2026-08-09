@@ -5,6 +5,7 @@ __pycache__/
 *.py[cod]
 *$py.class
 keynote_parser/versions/v*/generated/
+keynote_parser/versions/protobuf_schemas.tar.xz
 
 # Pinned protoc, downloaded on demand by dumper/run.py
 .protoc/

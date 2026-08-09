@@ -10,9 +10,9 @@ from google.protobuf.json_format import MessageToDict, ParseDict
 
 from keynote_parser import codec
 from keynote_parser.unicode_utils import fix_unicode
-from keynote_parser.versions.v14_4.generated.TSCHArchives_GEN_pb2 import (
-    ChartSeriesStyleArchive as Archive,
-)
+from keynote_parser.versions.archive import message_class
+
+Archive = message_class("14.4", "TSCH.Generated.ChartSeriesStyleArchive")
 
 SIMPLE_FILENAME = "./tests/data/simple-oneslide.iwa"
 MULTILINE_FILENAME = "./tests/data/multiline-oneslide.iwa"

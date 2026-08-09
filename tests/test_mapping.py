@@ -1,6 +1,6 @@
 """Tests for the generated TSP registry -> Protobuf class mappings.
 
-The mappings are generated code (see dumper/generate_mapping.py), but a gap in
+The mappings are generated code (see dumper/build_descriptor_archive.py), but a gap in
 them is invisible until a real document happens to contain the missing message
 type - at which point parsing fails hard. These tests assert the mapping is
 complete so that gap shows up in CI instead.

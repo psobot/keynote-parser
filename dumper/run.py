@@ -11,6 +11,7 @@ the appropriate locations in the keynote_parser directory tree.
 
 import argparse
 import glob
+import json
 import logging
 import os
 import plistlib
@@ -26,13 +27,8 @@ from typing import Generator
 from rich.logging import RichHandler
 
 from dumper.extract_mapping import extract_mapping
-from dumper.generate_mapping import generate_mapping
+from dumper.build_descriptor_archive import build as build_descriptor_archive
 from dumper.rename_proto_files import rename_proto_files
-from dumper.rewrite_descriptor_pool import (
-    rewrite_descriptor_pool,
-    write_pool_module,
-)
-from dumper.rewrite_imports import rewrite_imports
 
 # NOTE: dumper.protodump is imported lazily, inside the --app-path branch. It
 # depends on private Protobuf APIs that only exist in protobuf<4, and importing
@@ -203,69 +199,47 @@ def main():
             extract_proto_files(args.app_path, proto_output_directory)
 
         # Step 2: Extract the proto type mapping from the app bundle.
-        if not os.path.exists(os.path.join(gencode_output_directory, "mapping.py")):
+        registry_path = os.path.join(proto_output_directory, "registry.json")
+        if not os.path.exists(registry_path):
             with unsigned_copy_of(args.app_path) as temp_dir:
                 mapping = extract_mapping(temp_dir)
 
-            # Step 3: Generate the mapping.py file from the generated mapping.
-            mapping_py_contents = generate_mapping(mapping, proto_output_directory)
-            with open(os.path.join(gencode_output_directory, "mapping.py"), "w") as f:
-                f.write(mapping_py_contents)
+            # Step 3: Record the registry beside the protos it describes, and
+            # declare the version. The schemas themselves go into the shared
+            # descriptor archive in step 5; nothing else is generated per version.
+            with open(registry_path, "w") as f:
+                json.dump(
+                    {str(k): v for k, v in mapping.items()}, f, indent=1, sort_keys=True
+                )
+                f.write("\n")
             with open(os.path.join(gencode_output_directory, "__init__.py"), "w") as f:
                 f.write(
                     "from keynote_parser.macos_app_version import MacOSAppVersion\n\n"
                     f"VERSION = MacOSAppVersion({version!r}, {bundle_version!r}, {build_version!r})\n\n"
                 )
+            with open(os.path.join(gencode_output_directory, "mapping.py"), "w") as f:
+                f.write(
+                    f'"""Schema maps for Keynote {version}, loaded from the shared '
+                    'descriptor archive."""\n\n'
+                    "from keynote_parser.versions.archive import (\n"
+                    "    compute_maps,\n"
+                    "    registry_for,\n"
+                    ")\n\n"
+                    f'VERSION_STRING = "{version}"\n\n'
+                    "TSPRegistryMapping = registry_for(VERSION_STRING)\n"
+                    "ID_NAME_MAP, NAME_CLASS_MAP = compute_maps(VERSION_STRING)\n"
+                )
 
             # Step 4: Rename the proto files:
             rename_proto_files(proto_output_directory)
 
-    # Step 5: Run protoc on the proto files in each version directory:
-    for version_directory in glob.glob(
-        os.path.join(repo_root_directory, "protos", "versions", "*")
-    ):
-        version = os.path.basename(version_directory)
-        python_identifier_version = "v" + version.replace(".", "_")
-        gencode_version_directory = os.path.join(
-            repo_root_directory, "keynote_parser", "versions", python_identifier_version
-        )
-        gencode_proto_output_directory = os.path.join(
-            gencode_version_directory, "generated"
-        )
-        os.makedirs(gencode_proto_output_directory, exist_ok=True)
-        subprocess.run(
-            [
-                protoc,
-                "--proto_path",
-                version_directory,
-                "--python_out",
-                gencode_proto_output_directory,
-            ]
-            + glob.glob(os.path.join(version_directory, "*.proto")),
-            check=True,
-        )
-        # Step 6: Touch init.py in the generated code directory.
-        open(os.path.join(gencode_proto_output_directory, "__init__.py"), "w").close()
+    # Step 5: Compile every bundled version into one descriptor archive.
+    # Storing descriptors rather than generating a Python module per schema per
+    # version is both much smaller and slightly faster to load; see
+    # keynote_parser/versions/archive.py.
+    logging.info("Building descriptor archive...")
+    build_descriptor_archive(protoc, repo_root_directory)
 
-        # Step 7: Rewrite the imports in the generated code.
-        package_prefix = (
-            f"keynote_parser.versions.{python_identifier_version}.generated"
-        )
-        rewrite_imports(
-            glob.glob(os.path.join(gencode_proto_output_directory, "*.py")),
-            package_prefix,
-        )
-
-        # Step 8: Give this version its own descriptor pool. Without this every
-        # version registers the same .proto filenames into the global default
-        # pool, so importing a second version fails with "duplicate file name".
-        write_pool_module(gencode_proto_output_directory)
-        rewrite_descriptor_pool(
-            glob.glob(os.path.join(gencode_proto_output_directory, "*.py")),
-            package_prefix,
-        )
-
-        logging.info(f"Dumped {version} to {gencode_proto_output_directory}.")
     logging.info("Done!")
 
 
