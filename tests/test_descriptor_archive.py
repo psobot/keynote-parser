@@ -80,8 +80,8 @@ def test_the_module_lock_is_reentrant():
 
 def test_first_use_from_a_single_thread_completes():
     archive._pools.clear()
-    archive._registries.clear()
-    archive._archive = None
+    archive._registries = None
+    archive._members = None
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=1) as pool:
         id_name_map, _ = pool.submit(archive.compute_maps, ALL_VERSIONS[0]).result(
@@ -92,8 +92,8 @@ def test_first_use_from_a_single_thread_completes():
 
 def test_concurrent_first_use_does_not_deadlock():
     archive._pools.clear()
-    archive._registries.clear()
-    archive._archive = None
+    archive._registries = None
+    archive._members = None
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=8) as pool:
         futures = [

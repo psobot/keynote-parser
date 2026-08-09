@@ -1,23 +1,30 @@
-"""Load Keynote's Protobuf schemas from a compressed descriptor archive.
+"""Load Keynote's Protobuf schemas from a compressed archive of descriptor sets.
 
 protoc's Python output wraps each schema in a module that embeds its serialized
 FileDescriptorProto as a bytes literal. Every non-printable byte becomes a
 four-character `\\xNN` escape, so the generated source runs about twice the size
-of the data it carries - and with several Keynote versions bundled, over half
-of those files are byte-for-byte identical between versions, because Apple
-often changes nothing in a given schema from one release to the next.
+of the data it carries - and with several Keynote versions bundled, most of
+those files repeat between versions, because Apple often changes nothing in a
+given schema from one release to the next.
 
-Storing the descriptors themselves instead, deduplicated and compressed
-together, is both far smaller and slightly faster to load than importing the
-equivalent generated modules. It also makes each additional bundled version
-nearly free, which matters because the alternative gets worse every release.
+Storing the descriptors themselves is far smaller. The archive is a plain
+`.tar.xz` holding, for each bundled Keynote version, the FileDescriptorSet that
+`protoc --descriptor_set_out` produces, plus one `registries.json` mapping each
+version's TSP type ids to message names:
 
-The archive holds:
-  - every distinct FileDescriptorProto, concatenated in a stable order so that
-    near-identical schemas sit adjacent and compress against each other
-  - an index mapping each bundled Keynote version to the descriptors it uses,
-    and each descriptor to its span within the blob
-  - each version's TSP type registry (type id -> message name)
+    $ tar tf keynote_parser/versions/protobuf_schemas.tar.xz
+    10.2.desc
+    11.2.desc
+    ...
+    registries.json
+    $ tar xOf protobuf_schemas.tar.xz 14.5.desc | protoc --decode_raw | head
+
+Nothing here is bespoke: `.desc` is protoc's own interchange format, and anyone
+with tar, xz or protoc can take the archive apart without this library. Each
+version is stored whole rather than deduplicated by hand, because xz's window
+spans the entire payload - the schemas that repeat between versions collapse on
+their own, and the result is marginally smaller than hand-deduplicating into a
+custom container was.
 
 Message classes are built from the resulting pool on demand. Each version gets
 its own DescriptorPool: they all use the same .proto filenames, so sharing one
@@ -25,69 +32,74 @@ pool would collide on "duplicate file name".
 """
 
 import json
-import lzma
 import os
+import tarfile
 import threading
 
 from google.protobuf import descriptor_pb2, descriptor_pool, message_factory
 
-# ".kpda" - Keynote Parser Descriptor Archive - rather than a generic ".bin",
-# and deliberately not ".xz": this is a container with its own header, not a
-# bare LZMA stream, so naming it after the compressor would mislead anyone who
-# tried to decompress it directly. The extension matches the magic bytes below.
-ARCHIVE_FILENAME = "protobuf_schemas.kpda"
+ARCHIVE_FILENAME = "protobuf_schemas.tar.xz"
 ARCHIVE_PATH = os.path.join(os.path.dirname(__file__), ARCHIVE_FILENAME)
 
-# The archive stores a compressed JSON header followed by the compressed blob.
-# Both are length-prefixed so the header can be read without the payload.
-MAGIC = b"KPDA\x01"
+REGISTRIES_MEMBER = "registries.json"
+DESCRIPTOR_SUFFIX = ".desc"
 
-# Reentrant: pool_for() holds this while calling _read_archive(), which takes
-# it too. A plain Lock deadlocks the first time a pool is built.
+# Reentrant: pool_for() holds this while reading the archive, which takes it
+# too. A plain Lock deadlocks the first time a pool is built.
 _lock = threading.RLock()
-_archive = None
+_members = None
+_registries = None
 _pools = {}
-_registries = {}
 
 
 def _read_archive():
     """Decompress the archive once per process."""
-    global _archive
-    if _archive is not None:
-        return _archive
+    global _members, _registries
+    if _members is not None:
+        return _members
     with _lock:
-        if _archive is not None:
-            return _archive
-        with open(ARCHIVE_PATH, "rb") as f:
-            raw = f.read()
-        if not raw.startswith(MAGIC):
+        if _members is not None:
+            return _members
+        members = {}
+        with tarfile.open(ARCHIVE_PATH, "r:xz") as tar:
+            for info in tar:
+                if info.isfile():
+                    members[info.name] = tar.extractfile(info).read()
+        if REGISTRIES_MEMBER not in members:
             raise ValueError(
-                f"{ARCHIVE_PATH} is not a keynote-parser descriptor archive. "
-                "Rebuild it by running dumper/run.py."
+                f"{ARCHIVE_PATH} has no {REGISTRIES_MEMBER}. Rebuild it by "
+                "running dumper/run.py."
             )
-        offset = len(MAGIC)
-        header_length = int.from_bytes(raw[offset : offset + 4], "big")
-        offset += 4
-        header = json.loads(lzma.decompress(raw[offset : offset + header_length]))
-        offset += header_length
-        _archive = (header, lzma.decompress(raw[offset:]))
-        return _archive
+        _registries = {
+            version: {int(k): v for k, v in registry.items()}
+            for version, registry in json.loads(members[REGISTRIES_MEMBER]).items()
+        }
+        _members = members
+        return _members
 
 
 def bundled_versions():
-    return sorted(_read_archive()[0]["versions"])
+    _read_archive()
+    return sorted(_registries)
 
 
 def registry_for(version: str) -> dict:
     """The TSP type registry - type id to message name - for one version."""
-    if version not in _registries:
-        header, _ = _read_archive()
-        try:
-            entry = header["versions"][version]
-        except KeyError:
-            raise KeyError(f"No schemas bundled for Keynote {version}.") from None
-        _registries[version] = {int(k): v for k, v in entry["registry"].items()}
-    return _registries[version]
+    _read_archive()
+    try:
+        return _registries[version]
+    except KeyError:
+        raise KeyError(f"No schemas bundled for Keynote {version}.") from None
+
+
+def _descriptor_set(version: str) -> descriptor_pb2.FileDescriptorSet:
+    members = _read_archive()
+    member = version + DESCRIPTOR_SUFFIX
+    if member not in members:
+        raise KeyError(f"No schemas bundled for Keynote {version}.")
+    file_set = descriptor_pb2.FileDescriptorSet()
+    file_set.ParseFromString(members[member])
+    return file_set
 
 
 def pool_for(version: str) -> descriptor_pool.DescriptorPool:
@@ -99,16 +111,7 @@ def pool_for(version: str) -> descriptor_pool.DescriptorPool:
         if version in _pools:
             return _pools[version]
 
-        header, blob = _read_archive()
-        try:
-            files = header["versions"][version]["files"]
-        except KeyError:
-            raise KeyError(f"No schemas bundled for Keynote {version}.") from None
-        spans = header["descriptors"]
-
-        def serialized(filename):
-            start, length = spans[files[filename]]
-            return blob[start : start + length]
+        protos = {proto.name: proto for proto in _descriptor_set(version).file}
 
         pool = descriptor_pool.DescriptorPool()
 
@@ -118,24 +121,18 @@ def pool_for(version: str) -> descriptor_pool.DescriptorPool:
         descriptor_pb2.DESCRIPTOR.CopyToProto(well_known)
         pool.Add(well_known)
 
-        # AddSerializedFile requires a file's dependencies to be present first.
-        parsed = {}
-        for filename in files:
-            proto = descriptor_pb2.FileDescriptorProto()
-            proto.ParseFromString(serialized(filename))
-            parsed[filename] = proto
-
+        # Add() requires a file's dependencies to already be present.
         added = set()
 
         def add(filename):
-            if filename in added or filename not in parsed:
+            if filename in added or filename not in protos:
                 return
             added.add(filename)
-            for dependency in parsed[filename].dependency:
+            for dependency in protos[filename].dependency:
                 add(dependency)
-            pool.AddSerializedFile(serialized(filename))
+            pool.Add(protos[filename])
 
-        for filename in files:
+        for filename in protos:
             add(filename)
 
         _pools[version] = pool
@@ -156,11 +153,10 @@ def compute_maps(version: str):
     message_types_by_name.
     """
     pool = pool_for(version)
-    header, _ = _read_archive()
 
     descriptors = {}
-    for filename in header["versions"][version]["files"]:
-        file_descriptor = pool.FindFileByName(filename)
+    for proto in _descriptor_set(version).file:
+        file_descriptor = pool.FindFileByName(proto.name)
         for message_descriptor in file_descriptor.message_types_by_name.values():
             _walk(message_descriptor, descriptors)
 
