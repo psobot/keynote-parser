@@ -11,6 +11,7 @@ the appropriate locations in the keynote_parser directory tree.
 
 import argparse
 import glob
+import json
 import logging
 import os
 import plistlib
@@ -26,7 +27,6 @@ from typing import Generator
 from rich.logging import RichHandler
 
 from dumper.extract_mapping import extract_mapping
-from dumper.generate_mapping import generate_mapping
 from dumper.build_descriptor_archive import build as build_descriptor_archive
 from dumper.rename_proto_files import rename_proto_files
 
@@ -199,18 +199,35 @@ def main():
             extract_proto_files(args.app_path, proto_output_directory)
 
         # Step 2: Extract the proto type mapping from the app bundle.
-        if not os.path.exists(os.path.join(gencode_output_directory, "mapping.py")):
+        registry_path = os.path.join(proto_output_directory, "registry.json")
+        if not os.path.exists(registry_path):
             with unsigned_copy_of(args.app_path) as temp_dir:
                 mapping = extract_mapping(temp_dir)
 
-            # Step 3: Generate the mapping.py file from the generated mapping.
-            mapping_py_contents = generate_mapping(mapping, proto_output_directory)
-            with open(os.path.join(gencode_output_directory, "mapping.py"), "w") as f:
-                f.write(mapping_py_contents)
+            # Step 3: Record the registry beside the protos it describes, and
+            # declare the version. The schemas themselves go into the shared
+            # descriptor archive in step 5; nothing else is generated per version.
+            with open(registry_path, "w") as f:
+                json.dump(
+                    {str(k): v for k, v in mapping.items()}, f, indent=1, sort_keys=True
+                )
+                f.write("\n")
             with open(os.path.join(gencode_output_directory, "__init__.py"), "w") as f:
                 f.write(
                     "from keynote_parser.macos_app_version import MacOSAppVersion\n\n"
                     f"VERSION = MacOSAppVersion({version!r}, {bundle_version!r}, {build_version!r})\n\n"
+                )
+            with open(os.path.join(gencode_output_directory, "mapping.py"), "w") as f:
+                f.write(
+                    f'"""Schema maps for Keynote {version}, loaded from the shared '
+                    'descriptor archive."""\n\n'
+                    "from keynote_parser.versions.archive import (\n"
+                    "    compute_maps,\n"
+                    "    registry_for,\n"
+                    ")\n\n"
+                    f'VERSION_STRING = "{version}"\n\n'
+                    "TSPRegistryMapping = registry_for(VERSION_STRING)\n"
+                    "ID_NAME_MAP, NAME_CLASS_MAP = compute_maps(VERSION_STRING)\n"
                 )
 
             # Step 4: Rename the proto files:
