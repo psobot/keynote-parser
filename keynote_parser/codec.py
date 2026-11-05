@@ -435,15 +435,71 @@ def _work_around_protobuf_max_float_handling(_dict):
     return _dict
 
 
+def _is_repeated(field):
+    # FieldDescriptor.label is deprecated, and gone from newer upb builds.
+    is_repeated = getattr(field, "is_repeated", None)
+    if is_repeated is None:
+        return field.label == field.LABEL_REPEATED
+    return is_repeated
+
+
+def _copy_of(field, value):
+    if field.message_type is None:
+        return list(value) if _is_repeated(field) else value
+    values = list(value) if _is_repeated(field) else [value]
+    copies = []
+    for v in values:
+        c = type(v)()
+        c.CopyFrom(v)
+        copies.append(c)
+    return copies if _is_repeated(field) else copies[0]
+
+
+def _order_extensions_by_number(message):
+    """Re-insert a message's extensions in field-number order, recursively.
+
+    The C++ runtime Keynote uses serializes extensions in field-number order
+    among the regular fields; upb serializes them in the order they were set.
+    ParseDict sets them in the order their keys appear, and the YAML form sorts
+    keys alphabetically, so without this a pack reorders extensions - which is
+    harmless to protobuf, but means the .iwa that comes out is not byte-for-byte
+    the one that went in.
+    """
+    fields = message.ListFields()
+    extensions = [(f, v) for f, v in fields if f.is_extension]
+    if len(extensions) > 1:
+        saved = [(f, _copy_of(f, v)) for f, v in extensions]
+        for f, _ in saved:
+            message.ClearExtension(f)
+        for f, v in sorted(saved, key=lambda fv: fv[0].number):
+            if _is_repeated(f):
+                message.Extensions[f].extend(v)
+            elif f.message_type is not None:
+                message.Extensions[f].CopyFrom(v)
+            else:
+                message.Extensions[f] = v
+        fields = message.ListFields()
+    for f, v in fields:
+        if f.message_type is None:
+            continue
+        if _is_repeated(f):
+            for item in v:
+                _order_extensions_by_number(item)
+        else:
+            _order_extensions_by_number(v)
+
+
 def dict_to_message(_dict, version: str = LATEST_VERSION):
     if _dict.get("_pbtype") == UnknownArchive.PBTYPE:
         return UnknownArchive.from_dict(_dict)
     _type = _dict["_pbtype"]
     del _dict["_pbtype"]
     _dict = _work_around_protobuf_max_float_handling(_dict)
-    return ParseDict(
+    message = ParseDict(
         _dict, import_version(version)[1][_type](), ignore_unknown_fields=True
     )
+    _order_extensions_by_number(message)
+    return message
 
 
 def dict_to_header(_dict, version: str = LATEST_VERSION):
