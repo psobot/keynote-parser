@@ -138,10 +138,10 @@ new versions of Keynote will inevitably create `.key` files that cannot be read 
 that macOS machine to regenerate the mappings and compiled Protobuf files:
 
 ```shell
-PYTHONPATH=$PYTHONPATH:$(pwd) uv run \
-  --python /opt/homebrew/bin/python3 \
+PYTHONPATH=$PYTHONPATH:$(pwd) uv run --no-project \
+  --python /usr/bin/python3 \
   --with rich --with 'protobuf>=3.20.0rc1,<4' \
-  python dumper/run.py --app-path "/Applications/Keynote.app"
+  python dumper/run.py --app-path "/Applications/Keynote Creator Studio.app"
 ```
 
 This extracts the `.proto` files and message registry from the app bundle into
@@ -149,22 +149,28 @@ This extracts the `.proto` files and message registry from the app bundle into
 
 **Prerequisites:**
 - macOS with the new version of Keynote installed
-- [Homebrew](https://brew.sh) Python: `brew install python@3.13`
-- [LLVM/LLDB](https://llvm.org) matching that Python version: `brew install llvm`
+- LLDB with Python bindings that load into the interpreter you run: either
+  Xcode or the Command Line Tools (`xcode-select --install`) with
+  `/usr/bin/python3`, as above, or Homebrew's `llvm` with the Homebrew Python
+  of the same minor version (`--python /opt/homebrew/bin/python3`).
 
 `protoc` is *not* a prerequisite: it is pinned and downloaded automatically, as
 described above.
 
 **Notes:**
-- The interpreter matters. `dumper/extract_mapping.py` locates LLDB's Python
-  bindings by matching the running interpreter's version against the installed
-  LLVM, so `uv`'s bundled Python will fail to find them. Hence the explicit
-  `--python /opt/homebrew/bin/python3`.
+- The interpreter matters. LLDB's Python bindings only load into the Python
+  they were built for, so `uv`'s bundled Python will fail to import them.
+  `dumper/extract_mapping.py` tries `lldb -P` (Xcode or Command Line Tools)
+  first and Homebrew's `llvm` second, and reports what it tried.
 - `protobuf<4` is required for this step only. `dumper/protodump.py` uses Protobuf
   internals that were removed in version 4; it is imported lazily, so recompiling
   the checked-in protos (previous section) works with any supported `protobuf`.
-- The app path may differ depending on the Keynote version installed
-  (e.g. `/Applications/Keynote 2025.app`). Check your `/Applications` folder.
+- The app path may differ depending on the Keynote version installed.
+  Keynote 15 ships as `/Applications/Keynote Creator Studio.app` (bundle id
+  `com.apple.Keynote`), while 14.x was `/Applications/Keynote.app`
+  (`com.apple.iWork.Keynote`); on a machine with both, pointing `--app-path` at
+  the old one just re-dumps the schema you already have.
+  `mdfind "kMDItemCFBundleIdentifier == 'com.apple.Keynote'"` finds the new one.
 - The script briefly launches Keynote under the debugger to extract the type
   registry. Keynote may appear on screen momentarily — this is expected.
 - No codesigning certificate is required: the script uses a local signing identity

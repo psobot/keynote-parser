@@ -177,7 +177,8 @@ def main():
         )
         version = version_plist["CFBundleShortVersionString"]
         bundle_version = version_plist["CFBundleVersion"]
-        build_version = version_plist["ProductBuildVersion"]
+        # Keynote 15 no longer records ProductBuildVersion; it is descriptive only.
+        build_version = version_plist.get("ProductBuildVersion", "")
         python_identifier_version = "v" + version.replace(".", "_")
 
         logging.info(f"Version: {version}")
@@ -215,16 +216,17 @@ def main():
             with open(os.path.join(gencode_output_directory, "__init__.py"), "w") as f:
                 f.write(
                     "from keynote_parser.macos_app_version import MacOSAppVersion\n\n"
-                    f"VERSION = MacOSAppVersion({version!r}, {bundle_version!r}, {build_version!r})\n\n"
+                    # json.dumps gives the double-quoted literals the other
+                    # version modules use.
+                    "VERSION = MacOSAppVersion("
+                    f"{json.dumps(version)}, {json.dumps(bundle_version)}, "
+                    f"{json.dumps(build_version)})\n"
                 )
             with open(os.path.join(gencode_output_directory, "mapping.py"), "w") as f:
                 f.write(
                     f'"""Schema maps for Keynote {version}, loaded from the shared '
                     'descriptor archive."""\n\n'
-                    "from keynote_parser.versions.archive import (\n"
-                    "    compute_maps,\n"
-                    "    registry_for,\n"
-                    ")\n\n"
+                    "from keynote_parser.versions.archive import compute_maps, registry_for\n\n"
                     f'VERSION_STRING = "{version}"\n\n'
                     "TSPRegistryMapping = registry_for(VERSION_STRING)\n"
                     "ID_NAME_MAP, NAME_CLASS_MAP = compute_maps(VERSION_STRING)\n"
