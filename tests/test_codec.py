@@ -100,3 +100,30 @@ def test_too_big_float_deserialization(big_float):
     deserialized = codec._work_around_protobuf_max_float_handling(deserialized)
     deserialized_as_message = ParseDict(deserialized, Archive())
     assert deserialized_as_message == test_archive
+
+
+def _archive_payloads(iwa_file):
+    return [
+        [obj.SerializeToString() for obj in archive.objects]
+        for chunk in iwa_file.chunks
+        for archive in chunk.archives
+    ]
+
+
+def test_yaml_roundtrip_is_byte_identical():
+    # The YAML form sorts keys, so extensions come back in alphabetical order
+    # of their names. They must still be serialized in field-number order, as
+    # Keynote wrote them: KN.ThemeArchive's presets (extensions 100 to 210 of
+    # TSS.ThemeArchive) otherwise come out reordered in every Document.iwa.
+    import zipfile
+
+    from keynote_parser.file_utils import dump_yaml
+
+    with zipfile.ZipFile("./tests/data/simple-oneslide.key") as zf:
+        original = codec.IWAFile.from_buffer(zf.read("Index/Document.iwa"))
+    data = yaml.load(
+        fix_unicode(dump_yaml(original.to_dict()).decode("utf-8")), Loader=Loader
+    )
+    assert _archive_payloads(codec.IWAFile.from_dict(data)) == _archive_payloads(
+        original
+    )

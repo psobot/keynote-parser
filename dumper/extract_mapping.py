@@ -8,11 +8,14 @@ Nastiest hack. Please don't use this.
 Copyright 2020 Peter Sobot (psobot.com).
 """
 
+from __future__ import annotations
+
 import argparse
 import enum
 import json
 import logging
 import os
+import subprocess
 import sys
 import time
 
@@ -71,29 +74,61 @@ def main():
         json.dump(mapping, f, indent=2)
 
 
-def extract_mapping(exe: str) -> dict[int, str]:
-    # Add the installed LLVM Python path to the Python path and error if the Python version does not match:
-    # i.e.: /opt/homebrew/opt/llvm/libexec/python3.13/site-packages
+def _add_lldb_to_path():
+    """Make `import lldb` work, or explain why it can't.
+
+    There is no lldb package on PyPI: the bindings ship with a toolchain and
+    only load into the Python they were built against. That is either Xcode's
+    (or the Command Line Tools') lldb with /usr/bin/python3, or Homebrew's llvm
+    with the Homebrew Python of the same minor version.
+    """
+    try:
+        import lldb  # noqa: F401
+
+        return
+    except ImportError:
+        pass
+
+    candidates = []
+    try:
+        # `lldb -P` prints the directory holding that lldb's Python bindings.
+        candidates.append(
+            subprocess.check_output(
+                ["lldb", "-P"], text=True, stderr=subprocess.DEVNULL
+            ).strip()
+        )
+    except (OSError, subprocess.CalledProcessError):
+        pass
     LLVM_PYTHON_ROOT = "/opt/homebrew/opt/llvm/libexec"
-    if not os.path.exists(LLVM_PYTHON_ROOT):
-        raise ImportError(
-            f"{LLVM_PYTHON_ROOT} does not exist. Please install LLVM/LLDB first."
-        )
+    candidates.append(
+        f"{LLVM_PYTHON_ROOT}/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
+    )
 
-    existing_versions = [
-        x for x in os.listdir(LLVM_PYTHON_ROOT) if x.startswith("python")
-    ]
+    errors = []
+    for candidate in candidates:
+        if not candidate or not os.path.isdir(candidate):
+            continue
+        sys.path.append(candidate)
+        try:
+            import lldb  # noqa: F401
 
-    THIS_PYTHON_LLVM_PATH = f"{LLVM_PYTHON_ROOT}/python{sys.version_info.major}.{sys.version_info.minor}/site-packages"
-    if not os.path.exists(THIS_PYTHON_LLVM_PATH):
-        raise ImportError(
-            "Your system has LLVM/LLDB installed, but it is not the same version as the Python interpreter "
-            f"you are using; found: {', '.join(existing_versions)}, but the current Python version is "
-            f"{sys.version_info.major}.{sys.version_info.minor}. Please install the same "
-            "version of LLVM/LLDB as your Python interpreter."
-        )
+            logging.info(f"Using LLDB Python bindings from {candidate}.")
+            return
+        except ImportError as e:
+            errors.append(f"{candidate}: {e}")
+            sys.path.remove(candidate)
 
-    sys.path.append(THIS_PYTHON_LLVM_PATH)
+    raise ImportError(
+        "Could not import LLDB's Python bindings into Python "
+        f"{sys.version_info.major}.{sys.version_info.minor} ({sys.executable}). "
+        "The bindings must match the interpreter: use Xcode's lldb with "
+        "/usr/bin/python3, or Homebrew's llvm with the matching Homebrew Python. "
+        + ("Tried: " + "; ".join(errors) if errors else "No bindings were found.")
+    )
+
+
+def extract_mapping(exe: str) -> dict[int, str]:
+    _add_lldb_to_path()
 
     import lldb
 
@@ -142,29 +177,31 @@ def extract_mapping(exe: str) -> dict[int, str]:
             logging.info(
                 f"Thread: {thread} stopped at: {StopReason(thread.GetStopReason())}"
             )
-            match thread.GetStopReason():
-                case lldb.eStopReasonBreakpoint:
-                    if any(
-                        [
-                            x in str(thread.GetSelectedFrame())
-                            for x in ["CKContainer", "CloudKit"]
-                        ]
-                    ):
-                        # Skip the code in CKContainer, avoiding a crash due to missing entitlements:
-                        thread.ReturnFromFrame(
-                            thread.GetSelectedFrame(),
-                            lldb.SBValue().CreateValueFromExpression("0", ""),
-                        )
-                        process.Continue()
-                    else:
-                        break
-                case lldb.eStopReasonException:
-                    logging.info(repr(thread) + "\n")
-                    raise NotImplementedError(
-                        f"LLDB caught exception, {__file__} needs to be updated to handle."
+            # if/elif rather than match: the Xcode bindings only load into
+            # /usr/bin/python3, which is Python 3.9.
+            stop_reason = thread.GetStopReason()
+            if stop_reason == lldb.eStopReasonBreakpoint:
+                if any(
+                    [
+                        x in str(thread.GetSelectedFrame())
+                        for x in ["CKContainer", "CloudKit"]
+                    ]
+                ):
+                    # Skip the code in CKContainer, avoiding a crash due to missing entitlements:
+                    thread.ReturnFromFrame(
+                        thread.GetSelectedFrame(),
+                        lldb.SBValue().CreateValueFromExpression("0", ""),
                     )
-                case _:
                     process.Continue()
+                else:
+                    break
+            elif stop_reason == lldb.eStopReasonException:
+                logging.info(repr(thread) + "\n")
+                raise NotImplementedError(
+                    f"LLDB caught exception, {__file__} needs to be updated to handle."
+                )
+            else:
+                process.Continue()
 
         if process.GetState() != lldb.eStateStopped:
             raise ValueError("LLDB was unable to stop process! " + str(process))

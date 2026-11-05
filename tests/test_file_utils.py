@@ -112,3 +112,47 @@ def test_unicode_asset_filename():
             file_utils.process_file(filename, handle, sink)
 
     assert len(results) == 1
+
+
+def _unicode_asset_members():
+    reader = file_utils.zip_file_reader(UNICODE_ASSET_FILENAME, progress=False)
+    return {filename: handle.read() for filename, handle in reader}
+
+
+def test_unicode_asset_filename_survives_pack(tmp_path):
+    # `pack` writes names with the UTF-8 flag set; reading them back must not
+    # try to undo a cp437 decoding that never happened.
+    from zipfile import ZipFile
+
+    original = _unicode_asset_members()
+    repacked = str(tmp_path / "repacked.key")
+    with ZipFile(repacked, "w") as zf:
+        for filename, data in original.items():
+            zf.writestr(filename, data)
+
+    reader = file_utils.zip_file_reader(repacked, progress=False)
+    assert {filename: handle.read() for filename, handle in reader} == original
+
+
+def test_utf8_flag_only_in_local_header(tmp_path):
+    # Keynote 15 sets the UTF-8 flag in each local header but not in the
+    # central directory.
+    from zipfile import ZipFile
+
+    original = _unicode_asset_members()
+    path = tmp_path / "keynote15.key"
+    with ZipFile(str(path), "w") as zf:
+        for filename, data in original.items():
+            zf.writestr(filename, data)
+    data = bytearray(path.read_bytes())
+    # Clear bit 11 in every central directory record (signature PK\x01\x02,
+    # flags at offset 8), leaving the local headers flagged.
+    position = data.find(b"PK\x01\x02")
+    while position != -1:
+        flags = int.from_bytes(data[position + 8 : position + 10], "little")
+        data[position + 8 : position + 10] = (flags & ~0x800).to_bytes(2, "little")
+        position = data.find(b"PK\x01\x02", position + 4)
+    path.write_bytes(bytes(data))
+
+    reader = file_utils.zip_file_reader(str(path), progress=False)
+    assert {filename: handle.read() for filename, handle in reader} == original

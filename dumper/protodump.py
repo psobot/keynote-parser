@@ -14,7 +14,10 @@ Example usage:
 Inspired by Sean Patrick O'Brien (@obriensp)'s 2013 "proto-dump": https://github.com/obriensp/proto-dump
 """
 
+from __future__ import annotations
+
 import logging
+import re
 from collections import defaultdict
 from pathlib import Path
 from typing import List
@@ -163,6 +166,13 @@ def to_proto_file(fds: descriptor_pb2.FileDescriptorSet) -> str:
     return "\n".join(lines)
 
 
+# Descriptor names Keynote really uses: path-like, no whitespace. The scanner
+# below is heuristic, and Keynote 15 binaries contain at least one false
+# positive - a descriptor named "               return this.proto" whose
+# body is just `package ;`, which then makes protoc fail on the whole set.
+VALID_PROTO_PATH = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_./-]*\.proto$")
+
+
 class ProtoFile(object):
     def __init__(self, data, pool):
         self.data = data
@@ -275,7 +285,8 @@ def extract_proto_from_file(filename, descriptor_pool):
         try:
             proto_file = ProtoFile(descriptor_data, descriptor_pool)
             if (
-                proto_file.path.endswith(".proto")
+                VALID_PROTO_PATH.match(proto_file.path)
+                and proto_file.file_descriptor_proto.package
                 and proto_file.path != "google/protobuf/descriptor.proto"
             ):
                 yield proto_file
