@@ -2,6 +2,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 
 import os
+import struct
 import sys
 
 try:
@@ -89,10 +90,46 @@ def file_reader(path, progress=True):
         return directory_reader(path, progress)
 
 
+# General purpose bit 11: the member's name (and comment) are UTF-8.
+ZIP_UTF8_FLAG = 0x800
+
+
+def _local_header_flags(handle, zipinfo):
+    """Read the general purpose flags from a member's local file header."""
+    handle.seek(zipinfo.header_offset)
+    header = handle.read(30)
+    return struct.unpack("<H", header[6:8])[0] if len(header) == 30 else 0
+
+
+def _repair_zip_filenames(path, zipfile):
+    """Decode member names that are UTF-8 but weren't flagged as such.
+
+    Keynote stores UTF-8 names without setting the UTF-8 flag in the central
+    directory, so Python decodes them as cp437 and they come out as mojibake.
+    Names that are flagged (as `pack` writes them) are already correct, and
+    re-encoding them as cp437 fails, so they're left alone. Newer Keynote sets
+    the flag in the local header only; zipfile checks the local name against
+    orig_filename, so that has to be repaired too, or opening the member
+    raises BadZipFile.
+    """
+    with open(path, "rb") as handle:
+        for zipinfo in zipfile.filelist:
+            if zipinfo.flag_bits & ZIP_UTF8_FLAG:
+                continue
+            try:
+                repaired = zipinfo.filename.encode("cp437").decode("utf-8")
+            except UnicodeError:
+                continue
+            if repaired == zipinfo.filename:
+                continue
+            zipinfo.filename = repaired
+            if _local_header_flags(handle, zipinfo) & ZIP_UTF8_FLAG:
+                zipinfo.orig_filename = repaired
+
+
 def zip_file_reader(path, progress=True):
     zipfile = ZipFile(path, "r")
-    for _file in zipfile.filelist:
-        _file.filename = _file.filename.encode("cp437").decode("utf-8")
+    _repair_zip_filenames(path, zipfile)
     iterator = sorted(zipfile.filelist, key=lambda x: x.filename)
     if progress:
         iterator = tqdm(iterator)
