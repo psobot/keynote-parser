@@ -82,6 +82,21 @@ def ensure_directory_exists(prefix, path):
         pass
 
 
+def is_within_directory(directory, path):
+    """Whether `path` resolves to a location strictly inside `directory`.
+
+    Symlinks are resolved on both sides, so a path that goes through a symlink
+    pointing outside of `directory` is not within it either.
+    """
+    directory = os.path.realpath(directory)
+    path = os.path.realpath(path)
+    try:
+        return path != directory and os.path.commonpath([directory, path]) == directory
+    except ValueError:
+        # Paths on different drives (Windows) have nothing in common.
+        return False
+
+
 def file_reader(path, progress=True):
     if path.endswith(".key"):
         return zip_file_reader(path, progress)
@@ -135,11 +150,20 @@ def file_sink(path, raw=False, subfile=None):
 @contextmanager
 def dir_file_sink(target_dir, raw=False):
     def accept(filename, contents):
-        ensure_directory_exists(target_dir, filename)
         target_path = os.path.join(target_dir, filename)
         is_iwa = isinstance(contents, (IWAFile, dict))
         if is_iwa and not raw:
             target_path += ".yaml"
+        # The names come from the document being unpacked, which may be
+        # untrusted: a name with ".." components or an absolute path would
+        # otherwise be written (and its directories created) outside of
+        # `target_dir`. This has to happen before anything is created.
+        if not is_within_directory(target_dir, target_path):
+            raise ValueError(
+                "Refusing to write %r outside of the output directory %r"
+                % (filename, target_dir)
+            )
+        ensure_directory_exists(target_dir, filename)
         with open(target_path, "wb") as out:
             if is_iwa:
                 if raw:
